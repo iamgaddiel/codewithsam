@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Payment confirmed · CodeWithSammy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0B0F1A; --panel:#121826; --line:#22304A; --paper:#F4F6FB;
+    --mute:#8A97B0; --lime:#C6FF3A; --coral:#FF5C7A; --violet:#7A5CFF; --r:14px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--ink);color:var(--paper);font-family:'Inter',system-ui,sans-serif;line-height:1.6;-webkit-font-smoothing:antialiased;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;position:relative;overflow:hidden}
+  .glow{position:absolute;border-radius:50%;filter:blur(90px);opacity:.5;z-index:0}
+  .glow.a{width:420px;height:420px;background:rgba(198,255,58,.16);top:-120px;left:-80px}
+  .glow.b{width:380px;height:380px;background:rgba(122,92,255,.16);bottom:-120px;right:-80px}
+  h1,h2{font-family:'Space Grotesk',sans-serif;line-height:1.1;letter-spacing:-.02em}
+  .mono{font-family:'JetBrains Mono',monospace}
+  a{color:inherit;text-decoration:none}
+
+  .card{position:relative;z-index:1;width:100%;max-width:480px;background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:36px 30px;text-align:center}
+  .logo{display:inline-flex;align-items:center;gap:9px;font-family:'Space Grotesk';font-weight:700;font-size:18px;margin-bottom:26px}
+  .logo .dot{width:10px;height:10px;background:var(--lime);border-radius:3px;box-shadow:0 0 14px var(--lime)}
+  .accent{color:var(--lime)}
+
+  .icon{width:76px;height:76px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:38px}
+  .icon.ok{background:rgba(198,255,58,.14);color:var(--lime)}
+  .icon.bad{background:rgba(255,92,122,.14);color:var(--coral)}
+  .icon.wait{background:rgba(122,92,255,.14);color:var(--violet)}
+
+  h1{font-size:26px;margin-bottom:8px}
+  .lead{color:var(--mute);font-size:15px;margin-bottom:22px}
+
+  .receipt{background:#0D131F;border:1px solid var(--line);border-radius:12px;padding:14px 16px;text-align:left;margin-bottom:22px}
+  .receipt .row{display:flex;justify-content:space-between;gap:12px;padding:6px 0;font-size:14px}
+  .receipt .row + .row{border-top:1px solid var(--line)}
+  .receipt .k{color:var(--mute)}
+  .receipt .v{font-weight:600;text-align:right;word-break:break-word}
+  .receipt .v.amount{font-family:'JetBrains Mono',monospace;color:var(--lime)}
+
+  .next{text-align:left;margin-bottom:24px}
+  .next h2{font-size:14px;color:var(--mute);font-weight:500;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px}
+  .next li{list-style:none;display:flex;gap:10px;font-size:14px;color:var(--paper);padding:5px 0}
+  .next li .tick{color:var(--lime)}
+
+  .btn{cursor:pointer;display:inline-block;border:none;font-family:'Space Grotesk';font-weight:600;border-radius:10px;font-size:15px;padding:12px 22px;transition:transform .15s,box-shadow .2s}
+  .btn-primary{background:var(--lime);color:var(--ink);box-shadow:0 4px 22px rgba(198,255,58,.25)}
+  .btn-primary:hover{transform:translateY(-1px)}
+  .btn-ghost{background:transparent;color:var(--paper);border:1px solid var(--line)}
+
+  .spinner{width:40px;height:40px;border:3px solid var(--line);border-top-color:var(--lime);border-radius:50%;margin:8px auto 0;animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @media(prefers-reduced-motion:reduce){.spinner{animation:none}}
+  .hidden{display:none}
+</style>
+</head>
+<body>
+<div class="glow a"></div>
+<div class="glow b"></div>
+
+<div class="card">
+  <div class="logo"><span class="dot"></span><span>CodeWith<span class="accent">Sammy</span></span></div>
+
+  <!-- Loading -->
+  <div id="loadingView">
+    <h1>Confirming your payment…</h1>
+    <p class="lead">Hang tight while we verify with Paystack.</p>
+    <div class="spinner"></div>
+  </div>
+
+  <!-- Success -->
+  <div id="successView" class="hidden">
+    <div class="icon ok">✓</div>
+    <h1>You're in! 🎉</h1>
+    <p class="lead">Your payment was confirmed. A seat in the cohort is now yours.</p>
+    <div class="receipt" id="receipt"></div>
+    <div class="next">
+      <h2>What happens next</h2>
+      <ul>
+        <li><span class="tick">✓</span> A welcome email with your onboarding kit is on its way.</li>
+        <li><span class="tick">✓</span> You'll get the cohort schedule and your class links.</li>
+        <li><span class="tick">✓</span> Keep your payment reference below for your records.</li>
+      </ul>
+    </div>
+    <a class="btn btn-primary" href="/">Back to homepage</a>
+  </div>
+
+  <!-- Not successful / pending -->
+  <div id="failView" class="hidden">
+    <div class="icon bad">!</div>
+    <h1 id="failTitle">We couldn't confirm this payment</h1>
+    <p class="lead" id="failMsg">If you were charged, don't worry — nothing is lost. Contact us with your reference and we'll sort it out.</p>
+    <div class="receipt" id="failReceipt"></div>
+    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+      <a class="btn btn-primary" href="/#register">Try again</a>
+      <a class="btn btn-ghost" href="/">Back to homepage</a>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function(){
+    var params = new URLSearchParams(window.location.search);
+    // Paystack redirect uses "reference" (and sometimes "trxref").
+    var reference = params.get("reference") || params.get("trxref");
+
+    var loading = document.getElementById("loadingView");
+    var successView = document.getElementById("successView");
+    var failView = document.getElementById("failView");
+
+    function show(el){
+      loading.classList.add("hidden");
+      successView.classList.add("hidden");
+      failView.classList.add("hidden");
+      el.classList.remove("hidden");
+    }
+    function money(amount, currency){
+      var sign = currency === "NGN" || !currency ? "₦" : (currency + " ");
+      return sign + Number(amount || 0).toLocaleString();
+    }
+    function esc(v){
+      return String(v == null ? "" : v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+    }
+    function rows(target, list){
+      document.getElementById(target).innerHTML = list
+        .filter(function(r){ return r[1]; })
+        .map(function(r){
+          return "<div class='row'><span class='k'>" + r[0] + "</span><span class='v " + (r[2]||"") + "'>" + esc(r[1]) + "</span></div>";
+        }).join("");
+    }
+    function showFail(title, msg){
+      if(title) document.getElementById("failTitle").textContent = title;
+      if(msg) document.getElementById("failMsg").textContent = msg;
+      rows("failReceipt", [["Reference", reference]]);
+      show(failView);
+    }
+
+    if(!reference){
+      showFail("No payment reference", "We didn't get a payment reference in the link. If you just paid, check your email for confirmation.");
+      return;
+    }
+
+    fetch("/api/verify-payment?reference=" + encodeURIComponent(reference))
+      .then(function(res){ return res.json(); })
+      .then(function(data){
+        if(data && data.status === "success"){
+          rows("receipt", [
+            ["Reference", data.reference, ""],
+            ["Amount paid", money(data.amount, data.currency), "amount"],
+            ["Plan", data.plan, ""],
+            ["Cohort", data.cohort ? ("Cohort " + data.cohort) : "", ""],
+            ["Email", data.email, ""]
+          ]);
+          show(successView);
+        } else if(data && (data.status === "abandoned" || data.status === "failed" || data.status === "pending")){
+          showFail("Payment not completed", "This payment shows as \"" + data.status + "\". If you were charged, contact us with your reference.");
+        } else {
+          showFail(null, null);
+        }
+      })
+      .catch(function(){
+        // Verification endpoint unreachable — still acknowledge the reference.
+        showFail("Couldn't reach our servers", "We couldn't verify the payment right now. If you were charged, your confirmation email will still arrive — keep your reference handy.");
+      });
+  })();
+</script>
+</body>
+</html>

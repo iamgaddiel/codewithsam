@@ -9,7 +9,9 @@ Paystack-verified payment webhook and a Firebase-backed admin panel.
 |------|------------|
 | `index.html` | The public website. Handles registration + Paystack checkout, and renders pricing/cohort from admin-managed settings. |
 | `admin.html` | The admin panel (also served at `/admin`). Firebase Auth login, paid-students list, and pricing/cohort settings editor. |
+| `success.html` | Post-payment confirmation page (served at `/success`). Paystack redirects here after checkout; it verifies the payment and shows a receipt. |
 | `netlify/functions/paystack-webhook.js` | Netlify serverless function. Verifies a Paystack payment, then writes the confirmed registration to Firestore with the Admin SDK. |
+| `netlify/functions/verify-payment.js` | Read-only Netlify function (`/api/verify-payment`). Confirms a reference with Paystack so the success page shows a verified result. |
 | `firestore.rules` | Firestore security rules. |
 | `firebase.json`, `.firebaserc` | Firebase config (used only to deploy the Firestore rules). |
 | `netlify.toml` | Netlify build + routing (`/admin`, `/api/paystack-webhook`). |
@@ -101,6 +103,9 @@ registration impossible.
    ```
    https://<your-site>.netlify.app/api/paystack-webhook
    ```
+   The checkout is inline and redirects to `/success?reference=...` itself, so
+   a dashboard "callback URL" isn't required — but you may optionally set it to
+   `https://<your-site>.netlify.app/success` for redirect-based flows.
 
 ### 3. Netlify
 

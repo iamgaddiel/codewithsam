@@ -538,8 +538,9 @@
       },
       callback: function(response){
         // The registration is saved to Firestore server-side by the Paystack
-        // webhook after it verifies this payment — nothing is written here.
-        showMsg("Payment successful! Reference: " + response.reference + ". You'll get your onboarding email shortly.", "ok");
+        // webhook. Send the user to the success page, which verifies the
+        // payment with Paystack and shows a confirmation + receipt.
+        window.location.href = "/success?reference=" + encodeURIComponent(response.reference);
       },
       onClose: function(){
         showMsg("Payment window closed before completing. Your seat isn't confirmed yet.", "err");
