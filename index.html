@@ -17,6 +17,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js";
   import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-analytics.js";
+  import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyDQKqc48h9X-_ic1BEA6tj2QVtzndZoiuQ",
@@ -30,6 +31,20 @@
 
   const app = initializeApp(firebaseConfig);
   getAnalytics(app);
+
+  // Load site settings (pricing + cohort) that the admin manages, and render
+  // them. Falls back silently to the hard-coded defaults if none exist yet.
+  // type="module" scripts are deferred, so the DOM + applySiteConfig (defined
+  // in the main script) are ready by the time this runs.
+  try {
+    const db = getFirestore(app);
+    const snap = await getDoc(doc(db, "config", "site"));
+    if (snap.exists() && typeof window.applySiteConfig === "function") {
+      window.applySiteConfig(snap.data());
+    }
+  } catch (err) {
+    console.warn("Could not load site config:", err);
+  }
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -219,7 +234,7 @@
   <div class="glow b"></div>
   <div class="wrap hero-grid">
     <div>
-      <span class="eyebrow"><span class="pulse"></span>Cohort 07 · Enrolling now</span>
+      <span class="eyebrow"><span class="pulse"></span><span id="cohortLabel">Cohort 07 · Enrolling now</span></span>
       <h1>Stop watching tutorials.<br><span class="stroke">Start shipping</span> real code.</h1>
       <p class="lede">CodeWithSammy is a hands-on coding bootcamp for students. Learn by building projects that actually run — mentored by engineers, not slideshows.</p>
       <div class="hero-cta">
@@ -308,7 +323,7 @@
       <p>Registration secures your seat. Pay securely with Paystack after signing up.</p>
     </div>
     <div class="price-wrap">
-      <div class="price-card">
+      <div class="price-card" data-plan-id="student">
         <h3>Student</h3>
         <p class="desc">Everything you need to complete one full track.</p>
         <div class="price">₦45,000<span> / cohort</span></div>
@@ -320,7 +335,7 @@
         </ul>
         <button class="btn btn-ghost" data-plan="Student" data-amount="45000" onclick="selectPlan(this)">Choose Student</button>
       </div>
-      <div class="price-card featured">
+      <div class="price-card featured" data-plan-id="pro">
         <span class="badge">MOST POPULAR</span>
         <h3>Pro</h3>
         <p class="desc">Full track plus 1-on-1 mentorship and career support.</p>
@@ -344,6 +359,7 @@
       <span class="sec-tag">// secure your seat</span>
       <h2>Register, then pay.</h2>
       <p>Fill in your details and complete payment with Paystack. Seats are limited and confirmed on payment.</p>
+      <p class="cohort-dates" id="cohortDates" style="color:var(--lime);font-family:'JetBrains Mono',monospace;font-size:14px;margin-top:4px"></p>
       <div class="flow">
         <div class="flow-step"><div class="idx">1</div><div><h4>Create your profile</h4><p>Tell us who you are and your chosen track.</p></div></div>
         <div class="flow-step"><div class="idx">2</div><div><h4>Pay with Paystack</h4><p>Card, bank transfer, or USSD — fully secure.</p></div></div>
@@ -403,12 +419,79 @@
   // ---- Plan selection ----
   let selectedPlan = { name: "Pro", amount: 75000 };
 
+  // Current cohort number, attached to each payment so we know which cohort a
+  // student paid for. Updated from the admin-managed site config below.
+  let currentCohort = 7;
+
   function selectPlan(btn){
     selectedPlan = { name: btn.dataset.plan, amount: parseInt(btn.dataset.amount, 10) };
     document.getElementById('planName').textContent = selectedPlan.name;
     document.getElementById('planPrice').textContent = "₦" + selectedPlan.amount.toLocaleString();
     document.getElementById('register').scrollIntoView({behavior:'smooth'});
   }
+
+  // ---- Render admin-managed settings (pricing + cohort) ----
+  // Called by the Firebase module once it has loaded /config/site.
+  function formatDate(iso){
+    if(!iso) return "";
+    const d = new Date(iso + "T00:00:00");
+    if(isNaN(d)) return iso;
+    return d.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+  }
+
+  window.applySiteConfig = function(cfg){
+    if(!cfg) return;
+
+    // Cohort number + dates.
+    const cohort = cfg.cohort || {};
+    if(cohort.number != null){
+      currentCohort = cohort.number;
+      const label = document.getElementById('cohortLabel');
+      if(label) label.textContent = "Cohort " + String(cohort.number).padStart(2, '0') + " · Enrolling now";
+    }
+    const datesEl = document.getElementById('cohortDates');
+    if(datesEl && (cohort.startDate || cohort.endDate)){
+      const start = formatDate(cohort.startDate);
+      const end = formatDate(cohort.endDate);
+      datesEl.textContent = "Cohort " + (cohort.number != null ? cohort.number + " " : "") +
+        (start && end ? "runs " + start + " → " + end : (start ? "starts " + start : "ends " + end));
+    }
+
+    // Pricing cards (price + benefits), matched by data-plan-id.
+    (cfg.plans || []).forEach(function(plan){
+      const card = document.querySelector('.price-card[data-plan-id="' + plan.id + '"]');
+      if(!card) return;
+
+      if(typeof plan.amount === "number"){
+        const priceEl = card.querySelector('.price');
+        if(priceEl) priceEl.innerHTML = "₦" + plan.amount.toLocaleString() + "<span> / cohort</span>";
+        const btn = card.querySelector('button[data-plan]');
+        if(btn) btn.dataset.amount = String(plan.amount);
+      }
+
+      if(Array.isArray(plan.benefits)){
+        const ul = card.querySelector('ul');
+        if(ul){
+          ul.innerHTML = plan.benefits.map(function(b){
+            const li = document.createElement('li');
+            li.innerHTML = '<span class="tick">✓</span> ';
+            li.appendChild(document.createTextNode(b));
+            return li.outerHTML;
+          }).join('');
+        }
+      }
+    });
+
+    // Keep the currently-selected plan's amount in sync with the new prices.
+    const selectedCard = document.querySelector('.price-card [data-plan="' + selectedPlan.name + '"]');
+    if(selectedCard){
+      selectedPlan.amount = parseInt(selectedCard.dataset.amount, 10) || selectedPlan.amount;
+      const pn = document.getElementById('planName');
+      const pp = document.getElementById('planPrice');
+      if(pn) pn.textContent = selectedPlan.name;
+      if(pp) pp.textContent = "₦" + selectedPlan.amount.toLocaleString();
+    }
+  };
 
   function showMsg(text, type){
     const m = document.getElementById('formMsg');
@@ -448,7 +531,8 @@
           { display_name: "Full Name", variable_name: "full_name", value: name },
           { display_name: "Phone", variable_name: "phone", value: phone },
           { display_name: "Track", variable_name: "track", value: track },
-          { display_name: "Plan", variable_name: "plan", value: selectedPlan.name }
+          { display_name: "Plan", variable_name: "plan", value: selectedPlan.name },
+          { display_name: "Cohort", variable_name: "cohort", value: String(currentCohort) }
         ]
       },
       callback: function(response){

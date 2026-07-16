@@ -71,7 +71,7 @@ function readMetadata(rawMeta) {
   (meta.custom_fields || []).forEach((field) => {
     if (field && field.variable_name) out[field.variable_name] = field.value;
   });
-  ["full_name", "phone", "track", "plan"].forEach((key) => {
+  ["full_name", "phone", "track", "plan", "cohort"].forEach((key) => {
     if (out[key] === undefined && meta[key] !== undefined) out[key] = meta[key];
   });
   return out;
@@ -148,6 +148,7 @@ exports.handler = async (event) => {
           phone: meta.phone || "",
           track: meta.track || "",
           plan: meta.plan || "",
+          cohort: meta.cohort ? Number(meta.cohort) : null,
           amount: (tx.amount || 0) / 100, // kobo -> naira
           currency: tx.currency || "NGN",
           status: "paid",

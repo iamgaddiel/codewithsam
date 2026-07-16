@@ -8,8 +8,10 @@ rules_version = '2';
 //     serverless function using the Firebase Admin SDK, which bypasses these
 //     rules). It writes a record only after verifying the payment directly
 //     with Paystack, so a browser can never forge a "paid" registration.
-//   * The admin (signed in) may read, update and delete registrations.
-//   * The public/anonymous client has no access to Firestore at all.
+//   * The admin (signed in) may read, update and delete registrations and
+//     edit the site settings (pricing + cohort) in the `config` collection.
+//   * The public site may READ `config` (to render pricing/cohort) but has no
+//     other access to Firestore.
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -28,6 +30,13 @@ service cloud.firestore {
       // Registrations are created only by the Netlify Paystack webhook
       // (Admin SDK, which bypasses these rules). Clients get no write access.
       allow read, update, delete: if isAdmin();
+    }
+
+    // Site settings (pricing table, benefits, current cohort + dates).
+    // The public site reads this to render; only the admin can change it.
+    match /config/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
     }
 
     // Everything else is closed by default.

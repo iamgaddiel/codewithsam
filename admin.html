@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Admin · CodeWithSammy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0B0F1A; --panel:#121826; --line:#22304A; --paper:#F4F6FB;
+    --mute:#8A97B0; --lime:#C6FF3A; --coral:#FF5C7A; --r:14px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--ink);color:var(--paper);font-family:'Inter',system-ui,sans-serif;line-height:1.6;-webkit-font-smoothing:antialiased}
+  h1,h2,h3{font-family:'Space Grotesk',sans-serif;line-height:1.1;letter-spacing:-.02em}
+  .mono{font-family:'JetBrains Mono',monospace}
+  a{color:var(--lime)}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 20px}
+  .btn{cursor:pointer;border:none;font-family:'Space Grotesk';font-weight:600;border-radius:10px;font-size:15px;padding:11px 20px;transition:transform .15s,box-shadow .2s}
+  .btn-primary{background:var(--lime);color:var(--ink);box-shadow:0 4px 22px rgba(198,255,58,.25)}
+  .btn-primary:hover{transform:translateY(-1px)}
+  .btn-ghost{background:transparent;color:var(--paper);border:1px solid var(--line)}
+  .btn-ghost:hover{border-color:var(--mute)}
+  .btn[disabled]{opacity:.55;cursor:not-allowed;transform:none}
+  input,textarea{width:100%;background:#0D131F;border:1px solid var(--line);color:var(--paper);border-radius:10px;padding:11px 13px;font-family:'Inter',sans-serif;font-size:15px}
+  input:focus,textarea:focus{outline:none;border-color:var(--lime)}
+  textarea{resize:vertical;min-height:120px;line-height:1.5}
+  label{display:block;font-size:13px;color:var(--mute);margin-bottom:6px;font-weight:500}
+  .field{margin-bottom:16px}
+  .sec-tag{font-family:'JetBrains Mono',monospace;color:var(--lime);font-size:13px;letter-spacing:.02em}
+
+  /* Login — visible by default; hidden once an authenticated user is found. */
+  #login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+  .login-card{width:100%;max-width:380px;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:32px}
+  .logo{display:flex;align-items:center;gap:10px;font-family:'Space Grotesk';font-weight:700;font-size:20px;margin-bottom:22px}
+  .logo .dot{width:11px;height:11px;background:var(--lime);border-radius:3px;box-shadow:0 0 14px var(--lime)}
+
+  /* Dashboard */
+  #dashboard{display:none}
+  .topbar{border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(11,15,26,.9);backdrop-filter:blur(10px);z-index:5}
+  .topbar-inner{display:flex;align-items:center;justify-content:space-between;height:64px}
+  .who{display:flex;align-items:center;gap:14px;font-size:14px;color:var(--mute)}
+  section.panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:22px;margin:24px 0}
+  section.panel > h2{font-size:20px;margin-bottom:4px}
+  section.panel > .hint{color:var(--mute);font-size:14px;margin-bottom:18px}
+
+  .stats{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:18px}
+  .stat{flex:1;min-width:150px;background:#0D131F;border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+  .stat .n{font-family:'Space Grotesk';font-weight:700;font-size:26px}
+  .stat .l{color:var(--mute);font-size:13px}
+
+  .table-scroll{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-size:14px;min-width:640px}
+  th,td{text-align:left;padding:11px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+  th{color:var(--mute);font-weight:500;font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+  td.amount{font-family:'JetBrains Mono',monospace;color:var(--lime)}
+  .empty{color:var(--mute);padding:20px 4px}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .plan-editor{background:#0D131F;border:1px solid var(--line);border-radius:12px;padding:16px}
+  .plan-editor h3{font-size:16px;margin-bottom:14px}
+  @media(max-width:720px){ .grid2{grid-template-columns:1fr} }
+
+  .msg{font-size:14px;margin-top:12px;min-height:20px}
+  .msg.ok{color:var(--lime)}
+  .msg.err{color:var(--coral)}
+  .save-row{display:flex;align-items:center;gap:16px;margin-top:6px}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login">
+  <div class="login-card">
+    <div class="logo"><span class="dot"></span><span>CodeWith<span style="color:var(--lime)">Sammy</span></span></div>
+    <p class="sec-tag">// admin access</p>
+    <h1 style="font-size:24px;margin:6px 0 20px">Sign in</h1>
+    <form id="loginForm">
+      <div class="field"><label for="loginEmail">Email</label><input id="loginEmail" type="email" autocomplete="username" required></div>
+      <div class="field"><label for="loginPassword">Password</label><input id="loginPassword" type="password" autocomplete="current-password" required></div>
+      <button class="btn btn-primary" type="submit" id="loginBtn" style="width:100%">Sign in</button>
+      <div class="msg err" id="loginMsg"></div>
+    </form>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard">
+  <div class="topbar">
+    <div class="wrap topbar-inner">
+      <div class="logo" style="margin:0"><span class="dot"></span><span>CodeWith<span style="color:var(--lime)">Sammy</span> <span style="color:var(--mute);font-weight:500">admin</span></span></div>
+      <div class="who"><span id="userEmail"></span><button class="btn btn-ghost" id="logoutBtn" style="padding:8px 14px">Log out</button></div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <!-- Paid users -->
+    <section class="panel">
+      <h2>Paid students</h2>
+      <p class="hint">Everyone whose payment Paystack has confirmed.</p>
+      <div class="stats">
+        <div class="stat"><div class="n" id="statCount">—</div><div class="l">paid students</div></div>
+        <div class="stat"><div class="n" id="statRevenue">—</div><div class="l">total collected</div></div>
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>Name</th><th>Email</th><th>Amount</th><th>Cohort</th><th>Plan</th><th>Paid</th></tr></thead>
+          <tbody id="usersBody"><tr><td colspan="6" class="empty">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Settings -->
+    <section class="panel">
+      <h2>Cohort</h2>
+      <p class="hint">Shown on the homepage and attached to new registrations.</p>
+      <div class="grid2">
+        <div class="field"><label for="cohortNumber">Cohort number</label><input id="cohortNumber" type="number" min="1" step="1"></div>
+        <div></div>
+        <div class="field"><label for="cohortStart">Start date</label><input id="cohortStart" type="date"></div>
+        <div class="field"><label for="cohortEnd">End date</label><input id="cohortEnd" type="date"></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Pricing table</h2>
+      <p class="hint">Set the price and benefits for each plan. One benefit per line.</p>
+      <div class="grid2" id="planEditors"><!-- filled by JS --></div>
+      <div class="save-row">
+        <button class="btn btn-primary" id="saveBtn">Save settings</button>
+        <span class="msg" id="settingsMsg"></span>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js";
+  import {
+    getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged
+  } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js";
+  import {
+    getFirestore, doc, getDoc, setDoc, collection, getDocs, query, orderBy
+  } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDQKqc48h9X-_ic1BEA6tj2QVtzndZoiuQ",
+    authDomain: "codewithsammy-6cf08.firebaseapp.com",
+    projectId: "codewithsammy-6cf08",
+    storageBucket: "codewithsammy-6cf08.firebasestorage.app",
+    messagingSenderId: "316035486653",
+    appId: "1:316035486653:web:50bc0a5110096eb39ff8d4",
+    measurementId: "G-SD9WJW33HC"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  // The two pricing plans shown on the site, matched by id to the price cards.
+  const PLAN_DEFS = [
+    {
+      id: "student", name: "Student", amount: 45000,
+      benefits: [
+        "12 weeks of live classes",
+        "Weekly code reviews",
+        "All course materials & recordings",
+        "Certificate of completion"
+      ]
+    },
+    {
+      id: "pro", name: "Pro", amount: 75000,
+      benefits: [
+        "Everything in Student",
+        "1-on-1 mentor sessions",
+        "Portfolio & GitHub review",
+        "Interview prep & job referrals"
+      ]
+    }
+  ];
+
+  const $ = (id) => document.getElementById(id);
+  const naira = (n) => "₦" + Number(n || 0).toLocaleString();
+
+  function showView(loggedIn){
+    $("login").style.display = loggedIn ? "none" : "flex";
+    $("dashboard").style.display = loggedIn ? "block" : "none";
+  }
+
+  // ---- Auth ----
+  onAuthStateChanged(auth, (user) => {
+    if(user){
+      $("userEmail").textContent = user.email || "";
+      showView(true);
+      loadDashboard();
+    } else {
+      showView(false);
+    }
+  });
+
+  $("loginForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const msg = $("loginMsg");
+    msg.textContent = "";
+    const btn = $("loginBtn");
+    btn.disabled = true;
+    try {
+      await signInWithEmailAndPassword(auth, $("loginEmail").value.trim(), $("loginPassword").value);
+      // onAuthStateChanged takes over from here.
+    } catch (err) {
+      const map = {
+        "auth/invalid-credential": "Incorrect email or password.",
+        "auth/invalid-email": "That email address looks invalid.",
+        "auth/user-disabled": "This account has been disabled.",
+        "auth/too-many-requests": "Too many attempts. Try again later."
+      };
+      msg.textContent = map[err.code] || ("Sign-in failed: " + (err.code || err.message));
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  $("logoutBtn").addEventListener("click", () => signOut(auth));
+
+  // ---- Dashboard load ----
+  async function loadDashboard(){
+    await Promise.all([loadUsers(), loadSettings()]);
+  }
+
+  async function loadUsers(){
+    const body = $("usersBody");
+    try {
+      const snap = await getDocs(query(collection(db, "registrations"), orderBy("paidAt", "desc")));
+      const rows = [];
+      let total = 0;
+      snap.forEach((d) => {
+        const r = d.data();
+        total += Number(r.amount || 0);
+        const paidAt = r.paidAt && r.paidAt.toDate ? r.paidAt.toDate().toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' }) : "—";
+        rows.push(
+          "<tr>" +
+          "<td>" + esc(r.fullName) + "</td>" +
+          "<td>" + esc(r.email) + "</td>" +
+          "<td class='amount'>" + naira(r.amount) + "</td>" +
+          "<td>" + (r.cohort != null ? esc(r.cohort) : "—") + "</td>" +
+          "<td>" + esc(r.plan || "—") + "</td>" +
+          "<td>" + paidAt + "</td>" +
+          "</tr>"
+        );
+      });
+      $("statCount").textContent = snap.size;
+      $("statRevenue").textContent = naira(total);
+      body.innerHTML = rows.length ? rows.join("") : "<tr><td colspan='6' class='empty'>No paid students yet.</td></tr>";
+    } catch (err) {
+      if(err.code === "permission-denied"){
+        body.innerHTML = "<tr><td colspan='6' class='empty'>This account isn't authorized as an admin. Add its UID to firestore.rules.</td></tr>";
+      } else {
+        body.innerHTML = "<tr><td colspan='6' class='empty'>Couldn't load students: " + esc(err.message) + "</td></tr>";
+      }
+      $("statCount").textContent = "—";
+      $("statRevenue").textContent = "—";
+    }
+  }
+
+  async function loadSettings(){
+    let cfg = null;
+    try {
+      const snap = await getDoc(doc(db, "config", "site"));
+      if(snap.exists()) cfg = snap.data();
+    } catch (err) {
+      // Non-fatal — fall back to defaults so the form is still usable.
+      console.warn("Could not load config:", err);
+    }
+
+    const cohort = (cfg && cfg.cohort) || { number: 7, startDate: "", endDate: "" };
+    $("cohortNumber").value = cohort.number != null ? cohort.number : "";
+    $("cohortStart").value = cohort.startDate || "";
+    $("cohortEnd").value = cohort.endDate || "";
+
+    // Merge saved plan values onto the definitions so ids/names stay fixed.
+    const saved = {};
+    ((cfg && cfg.plans) || []).forEach((p) => { saved[p.id] = p; });
+
+    const container = $("planEditors");
+    container.innerHTML = "";
+    PLAN_DEFS.forEach((def) => {
+      const s = saved[def.id] || {};
+      const amount = typeof s.amount === "number" ? s.amount : def.amount;
+      const benefits = Array.isArray(s.benefits) ? s.benefits : def.benefits;
+      const el = document.createElement("div");
+      el.className = "plan-editor";
+      el.innerHTML =
+        "<h3>" + def.name + "</h3>" +
+        "<div class='field'><label>Price (₦)</label>" +
+          "<input type='number' min='0' step='500' data-plan-amount='" + def.id + "' value='" + amount + "'></div>" +
+        "<div class='field'><label>Benefits — one per line</label>" +
+          "<textarea data-plan-benefits='" + def.id + "'>" + esc(benefits.join("\n")) + "</textarea></div>";
+      container.appendChild(el);
+    });
+  }
+
+  $("saveBtn").addEventListener("click", async () => {
+    const msg = $("settingsMsg");
+    const btn = $("saveBtn");
+    msg.className = "msg";
+    msg.textContent = "";
+
+    const number = parseInt($("cohortNumber").value, 10);
+    if(isNaN(number) || number < 1){
+      msg.className = "msg err";
+      msg.textContent = "Enter a valid cohort number.";
+      return;
+    }
+
+    const plans = PLAN_DEFS.map((def) => {
+      const amountEl = document.querySelector("[data-plan-amount='" + def.id + "']");
+      const benefitsEl = document.querySelector("[data-plan-benefits='" + def.id + "']");
+      const amount = parseInt(amountEl.value, 10);
+      const benefits = benefitsEl.value.split("\n").map((l) => l.trim()).filter(Boolean);
+      return { id: def.id, name: def.name, amount: isNaN(amount) ? 0 : amount, benefits };
+    });
+
+    const cfg = {
+      cohort: {
+        number: number,
+        startDate: $("cohortStart").value || "",
+        endDate: $("cohortEnd").value || ""
+      },
+      plans: plans,
+      updatedAt: new Date().toISOString()
+    };
+
+    btn.disabled = true;
+    try {
+      await setDoc(doc(db, "config", "site"), cfg);
+      msg.className = "msg ok";
+      msg.textContent = "Saved. The homepage will show the new values.";
+    } catch (err) {
+      msg.className = "msg err";
+      msg.textContent = err.code === "permission-denied"
+        ? "Not authorized. Add this account's UID to firestore.rules."
+        : ("Save failed: " + (err.message || err.code));
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  function esc(v){
+    return String(v == null ? "" : v)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+</script>
+</body>
+</html>

@@ -12,3 +12,9 @@
   from = "/api/paystack-webhook"
   to = "/.netlify/functions/paystack-webhook"
   status = 200
+
+# Clean URL for the admin panel.
+[[redirects]]
+  from = "/admin"
+  to = "/admin.html"
+  status = 200
