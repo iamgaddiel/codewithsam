@@ -29,14 +29,13 @@
   const db = getFirestore(app);
 
   // Helpers used by the registration flow (see main script at bottom of page).
-  // Anonymous visitors can only CREATE a registration; the "paid" status is
-  // set later by the admin / a Paystack webhook (see firestore.rules).
+  // A registration is only written AFTER Paystack confirms payment, so the
+  // caller passes status:"paid" and the payment reference.
   window.fb = {
     // Create a registration document; returns the new doc id.
     async saveRegistration(data){
       const ref = await addDoc(collection(db, "registrations"), {
         ...data,
-        status: "pending",
         createdAt: serverTimestamp()
       });
       return ref.id;
@@ -432,7 +431,7 @@
   // Replace with your real Paystack PUBLIC key from dashboard.paystack.com
   const PAYSTACK_PUBLIC_KEY = "pk_test_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
 
-  async function payWithPaystack(){
+  function payWithPaystack(){
     const name  = document.getElementById('fname').value.trim();
     const email = document.getElementById('email').value.trim();
     const phone = document.getElementById('phone').value.trim();
@@ -447,28 +446,6 @@
       return;
     }
 
-    // Save the user's details to Firestore before opening the payment window.
-    const payBtn = document.getElementById('payBtn');
-    let regId = null;
-    try {
-      payBtn.disabled = true;
-      showMsg("Saving your details…", "");
-      regId = await window.fb.saveRegistration({
-        fullName: name,
-        email,
-        phone,
-        track,
-        plan: selectedPlan.name,
-        amount: selectedPlan.amount
-      });
-    } catch (err) {
-      console.error("Failed to save registration:", err);
-      showMsg("We couldn't save your details. Please check your connection and try again.", "err");
-      payBtn.disabled = false;
-      return;
-    }
-    payBtn.disabled = false;
-
     const handler = PaystackPop.setup({
       key: PAYSTACK_PUBLIC_KEY,
       email: email,
@@ -476,7 +453,6 @@
       currency: "NGN",
       ref: "CWS-" + Date.now(),
       metadata: {
-        registrationId: regId,
         custom_fields: [
           { display_name: "Full Name", variable_name: "full_name", value: name },
           { display_name: "Phone", variable_name: "phone", value: phone },
@@ -485,10 +461,23 @@
         ]
       },
       callback: function(response){
-        // Payment confirmation (marking the record "paid") is reconciled
-        // server-side against Paystack — see firestore.rules. The reference
-        // is also attached to the Paystack transaction via metadata above.
-        showMsg("Payment successful! Reference: " + response.reference + ". Check your email for onboarding.", "ok");
+        // Only save the user's details AFTER payment has succeeded.
+        showMsg("Payment successful — saving your details…", "ok");
+        window.fb.saveRegistration({
+          fullName: name,
+          email: email,
+          phone: phone,
+          track: track,
+          plan: selectedPlan.name,
+          amount: selectedPlan.amount,
+          status: "paid",
+          paymentRef: response.reference
+        }).then(function(){
+          showMsg("You're in! Reference: " + response.reference + ". Check your email for onboarding.", "ok");
+        }).catch(function(err){
+          console.error("Failed to save registration:", err);
+          showMsg("Payment succeeded (ref " + response.reference + ") but we couldn't save your details. Please contact support with this reference.", "err");
+        });
       },
       onClose: function(){
         showMsg("Payment window closed before completing. Your seat isn't confirmed yet.", "err");

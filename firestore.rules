@@ -3,16 +3,18 @@ rules_version = '2';
 // Security rules for the CodeWithSammy website.
 //
 // Auth model: only the site ADMIN has an account. Students never sign in —
-// they submit the public registration form (index.html) anonymously.
+// they submit the public registration form (index.html) anonymously, and a
+// registration is only written AFTER Paystack confirms payment.
 //
-//   * Anonymous visitors  -> may ONLY create a registration (validated).
+//   * Anonymous visitors  -> may ONLY create a paid registration (validated).
 //   * The admin (signed in) -> may read, update and delete registrations.
 //
-// Paid status is NOT set by the anonymous client (that would be spoofable
-// and students have no account to scope an update to). Instead, mark a
-// registration "paid" either from an admin tool, or — recommended — from a
-// Paystack webhook running with the Firebase Admin SDK, which bypasses these
-// rules entirely.
+// NOTE: the payment reference is supplied by the browser, so a determined
+// user could forge a "paid" record. These rules cannot verify a payment on
+// their own. For trustworthy confirmation, verify the reference server-side
+// against Paystack (e.g. a webhook / Cloud Function using the Admin SDK,
+// which bypasses these rules) and treat the client-written record as a lead
+// to be reconciled.
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -27,21 +29,22 @@ service cloud.firestore {
              ];
     }
 
-    // ---- Validation for a new public registration -----------------------
+    // ---- Validation for a new (paid) public registration ----------------
     function isValidRegistration(data) {
-      return data.keys().hasOnly(['fullName', 'email', 'phone', 'track', 'plan', 'amount', 'status', 'createdAt'])
+      return data.keys().hasOnly(['fullName', 'email', 'phone', 'track', 'plan', 'amount', 'status', 'paymentRef', 'createdAt'])
           && data.fullName is string && data.fullName.size() > 0 && data.fullName.size() <= 120
           && data.email is string && data.email.matches('^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$')
           && data.phone is string && data.phone.size() > 0 && data.phone.size() <= 40
           && data.track is string && data.track.size() <= 80
           && data.plan is string && data.plan.size() <= 40
           && data.amount is number && data.amount >= 0
-          && data.status == 'pending'
+          && data.status == 'paid'
+          && data.paymentRef is string && data.paymentRef.size() > 0 && data.paymentRef.size() <= 100
           && data.createdAt is timestamp;
     }
 
     match /registrations/{regId} {
-      // Anyone can submit a registration — no account required.
+      // A registration can only be created after payment — no account required.
       allow create: if isValidRegistration(request.resource.data);
 
       // Only the admin can view, edit or remove registrations.
