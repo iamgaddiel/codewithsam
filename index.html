@@ -9,9 +9,10 @@
 <!-- Firebase (Analytics) -->
 <!--
   Registrations are NOT written from the browser. The user's details are
-  attached to the Paystack transaction as metadata, and the Paystack webhook
-  Cloud Function (see /functions) verifies the payment and writes the record
-  to Firestore with the Admin SDK. This makes a forged "paid" record impossible.
+  attached to the Paystack transaction as metadata, and the Netlify webhook
+  function (netlify/functions/paystack-webhook.js) verifies the payment and
+  writes the record to Firestore with the Admin SDK. This makes a forged
+  "paid" record impossible.
 -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js";

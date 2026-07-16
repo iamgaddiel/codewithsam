@@ -4,10 +4,10 @@ rules_version = '2';
 //
 // Auth model: only the site ADMIN has an account. Students never sign in.
 //
-//   * Registrations are written ONLY by the Paystack webhook Cloud Function,
-//     which uses the Firebase Admin SDK and bypasses these rules. It writes a
-//     record only after verifying the payment directly with Paystack, so a
-//     browser can never forge a "paid" registration.
+//   * Registrations are written ONLY by the Paystack webhook (a Netlify
+//     serverless function using the Firebase Admin SDK, which bypasses these
+//     rules). It writes a record only after verifying the payment directly
+//     with Paystack, so a browser can never forge a "paid" registration.
 //   * The admin (signed in) may read, update and delete registrations.
 //   * The public/anonymous client has no access to Firestore at all.
 service cloud.firestore {
@@ -25,8 +25,8 @@ service cloud.firestore {
     }
 
     match /registrations/{regId} {
-      // Registrations are created only by the Paystack webhook (Admin SDK,
-      // which bypasses these rules). Clients get no write access here.
+      // Registrations are created only by the Netlify Paystack webhook
+      // (Admin SDK, which bypasses these rules). Clients get no write access.
       allow read, update, delete: if isAdmin();
     }
 
