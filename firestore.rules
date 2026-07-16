@@ -1,0 +1,47 @@
+rules_version = '2';
+
+// Security rules for the CodeWithSammy website.
+//
+// Auth model: only the site ADMIN has an account. Students never sign in.
+//
+//   * Registrations are written ONLY by the Paystack webhook (a Netlify
+//     serverless function using the Firebase Admin SDK, which bypasses these
+//     rules). It writes a record only after verifying the payment directly
+//     with Paystack, so a browser can never forge a "paid" registration.
+//   * The admin (signed in) may read, update and delete registrations and
+//     edit the site settings (pricing + cohort) in the `config` collection.
+//   * The public site may READ `config` (to render pricing/cohort) but has no
+//     other access to Firestore.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---- Admin identity -------------------------------------------------
+    // Create the admin account in Firebase Console -> Authentication, then
+    // paste its UID(s) below (Authentication -> Users -> "User UID").
+    // Add more UIDs to the list to grant additional admins.
+    function isAdmin() {
+      return request.auth != null
+          && request.auth.uid in [
+               'PASTE_ADMIN_UID_HERE'
+             ];
+    }
+
+    match /registrations/{regId} {
+      // Registrations are created only by the Netlify Paystack webhook
+      // (Admin SDK, which bypasses these rules). Clients get no write access.
+      allow read, update, delete: if isAdmin();
+    }
+
+    // Site settings (pricing table, benefits, current cohort + dates).
+    // The public site reads this to render; only the admin can change it.
+    match /config/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Everything else is closed by default.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,0 +1,20 @@
+[build]
+  # Static site — the root already contains index.html.
+  publish = "."
+  functions = "netlify/functions"
+
+[functions]
+  node_bundler = "esbuild"
+
+# Optional: expose the webhook at a clean path in addition to the default
+# /.netlify/functions/paystack-webhook endpoint.
+[[redirects]]
+  from = "/api/paystack-webhook"
+  to = "/.netlify/functions/paystack-webhook"
+  status = 200
+
+# Clean URL for the admin panel.
+[[redirects]]
+  from = "/admin"
+  to = "/admin.html"
+  status = 200
