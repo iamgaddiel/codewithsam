@@ -2,19 +2,14 @@ rules_version = '2';
 
 // Security rules for the CodeWithSammy website.
 //
-// Auth model: only the site ADMIN has an account. Students never sign in —
-// they submit the public registration form (index.html) anonymously, and a
-// registration is only written AFTER Paystack confirms payment.
+// Auth model: only the site ADMIN has an account. Students never sign in.
 //
-//   * Anonymous visitors  -> may ONLY create a paid registration (validated).
-//   * The admin (signed in) -> may read, update and delete registrations.
-//
-// NOTE: the payment reference is supplied by the browser, so a determined
-// user could forge a "paid" record. These rules cannot verify a payment on
-// their own. For trustworthy confirmation, verify the reference server-side
-// against Paystack (e.g. a webhook / Cloud Function using the Admin SDK,
-// which bypasses these rules) and treat the client-written record as a lead
-// to be reconciled.
+//   * Registrations are written ONLY by the Paystack webhook Cloud Function,
+//     which uses the Firebase Admin SDK and bypasses these rules. It writes a
+//     record only after verifying the payment directly with Paystack, so a
+//     browser can never forge a "paid" registration.
+//   * The admin (signed in) may read, update and delete registrations.
+//   * The public/anonymous client has no access to Firestore at all.
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -29,25 +24,9 @@ service cloud.firestore {
              ];
     }
 
-    // ---- Validation for a new (paid) public registration ----------------
-    function isValidRegistration(data) {
-      return data.keys().hasOnly(['fullName', 'email', 'phone', 'track', 'plan', 'amount', 'status', 'paymentRef', 'createdAt'])
-          && data.fullName is string && data.fullName.size() > 0 && data.fullName.size() <= 120
-          && data.email is string && data.email.matches('^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$')
-          && data.phone is string && data.phone.size() > 0 && data.phone.size() <= 40
-          && data.track is string && data.track.size() <= 80
-          && data.plan is string && data.plan.size() <= 40
-          && data.amount is number && data.amount >= 0
-          && data.status == 'paid'
-          && data.paymentRef is string && data.paymentRef.size() > 0 && data.paymentRef.size() <= 100
-          && data.createdAt is timestamp;
-    }
-
     match /registrations/{regId} {
-      // A registration can only be created after payment — no account required.
-      allow create: if isValidRegistration(request.resource.data);
-
-      // Only the admin can view, edit or remove registrations.
+      // Registrations are created only by the Paystack webhook (Admin SDK,
+      // which bypasses these rules). Clients get no write access here.
       allow read, update, delete: if isAdmin();
     }
 

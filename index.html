@@ -6,13 +6,16 @@
 <title>CodeWithSammy — Learn to build real software</title>
 <script src="https://js.paystack.co/v1/inline.js"></script>
 
-<!-- Firebase (Firestore for saving registrations) -->
+<!-- Firebase (Analytics) -->
+<!--
+  Registrations are NOT written from the browser. The user's details are
+  attached to the Paystack transaction as metadata, and the Paystack webhook
+  Cloud Function (see /functions) verifies the payment and writes the record
+  to Firestore with the Admin SDK. This makes a forged "paid" record impossible.
+-->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js";
   import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-analytics.js";
-  import {
-    getFirestore, collection, addDoc, serverTimestamp
-  } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyDQKqc48h9X-_ic1BEA6tj2QVtzndZoiuQ",
@@ -26,21 +29,6 @@
 
   const app = initializeApp(firebaseConfig);
   getAnalytics(app);
-  const db = getFirestore(app);
-
-  // Helpers used by the registration flow (see main script at bottom of page).
-  // A registration is only written AFTER Paystack confirms payment, so the
-  // caller passes status:"paid" and the payment reference.
-  window.fb = {
-    // Create a registration document; returns the new doc id.
-    async saveRegistration(data){
-      const ref = await addDoc(collection(db, "registrations"), {
-        ...data,
-        createdAt: serverTimestamp()
-      });
-      return ref.id;
-    }
-  };
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -452,6 +440,8 @@
       amount: selectedPlan.amount * 100, // Paystack expects the amount in kobo
       currency: "NGN",
       ref: "CWS-" + Date.now(),
+      // These details ride along with the transaction so the Paystack webhook
+      // can save the registration once it has verified the payment.
       metadata: {
         custom_fields: [
           { display_name: "Full Name", variable_name: "full_name", value: name },
@@ -461,23 +451,9 @@
         ]
       },
       callback: function(response){
-        // Only save the user's details AFTER payment has succeeded.
-        showMsg("Payment successful — saving your details…", "ok");
-        window.fb.saveRegistration({
-          fullName: name,
-          email: email,
-          phone: phone,
-          track: track,
-          plan: selectedPlan.name,
-          amount: selectedPlan.amount,
-          status: "paid",
-          paymentRef: response.reference
-        }).then(function(){
-          showMsg("You're in! Reference: " + response.reference + ". Check your email for onboarding.", "ok");
-        }).catch(function(err){
-          console.error("Failed to save registration:", err);
-          showMsg("Payment succeeded (ref " + response.reference + ") but we couldn't save your details. Please contact support with this reference.", "err");
-        });
+        // The registration is saved to Firestore server-side by the Paystack
+        // webhook after it verifies this payment — nothing is written here.
+        showMsg("Payment successful! Reference: " + response.reference + ". You'll get your onboarding email shortly.", "ok");
       },
       onClose: function(){
         showMsg("Payment window closed before completing. Your seat isn't confirmed yet.", "err");
