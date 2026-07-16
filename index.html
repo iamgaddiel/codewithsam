@@ -500,8 +500,9 @@
   }
 
   // ---- Paystack ----
-  // Replace with your real Paystack PUBLIC key from dashboard.paystack.com
-  const PAYSTACK_PUBLIC_KEY = "pk_test_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+  // Paystack PUBLIC key (safe to expose in the browser). Get it from
+  // dashboard.paystack.com → Settings → API Keys & Webhooks.
+  const PAYSTACK_PUBLIC_KEY = "pk_test_8e749c4a7c4d7e6bb813f09323a23a66ca14fb98";
 
   function payWithPaystack(){
     const name  = document.getElementById('fname').value.trim();
