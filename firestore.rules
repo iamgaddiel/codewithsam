@@ -1,0 +1,47 @@
+rules_version = '2';
+
+// Security rules for the CodeWithSammy website.
+//
+// The public registration form (index.html) writes to the `registrations`
+// collection with no user authentication, so we allow anonymous `create`
+// and a narrow `update` (to flag a record as paid after Paystack returns).
+// Reading, listing and deleting registrations is denied from the client —
+// use the Firebase console or a trusted server (Admin SDK) for that.
+//
+// NOTE: The client-side "paid" flag is convenience only and is spoofable.
+// For trustworthy payment status, verify payments server-side with a
+// Paystack webhook (e.g. a Cloud Function using the Admin SDK, which
+// bypasses these rules).
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isValidRegistration(data) {
+      return data.fullName is string && data.fullName.size() > 0
+          && data.email is string && data.email.matches('^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$')
+          && data.phone is string && data.phone.size() > 0
+          && data.track is string
+          && data.plan is string
+          && data.amount is number
+          && data.status == "pending";
+    }
+
+    match /registrations/{regId} {
+      // Anyone can submit a new registration, but the payload must look sane.
+      allow create: if isValidRegistration(request.resource.data);
+
+      // Allow flipping a pending registration to "paid" from the client.
+      allow update: if resource.data.status == "pending"
+                    && request.resource.data.status == "paid"
+                    && request.resource.data.fullName == resource.data.fullName
+                    && request.resource.data.email == resource.data.email;
+
+      // Registrations are not publicly readable or deletable.
+      allow read, delete: if false;
+    }
+
+    // Everything else is closed by default.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

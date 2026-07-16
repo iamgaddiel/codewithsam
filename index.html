@@ -5,6 +5,50 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CodeWithSammy — Learn to build real software</title>
 <script src="https://js.paystack.co/v1/inline.js"></script>
+
+<!-- Firebase (Firestore for saving registrations) -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-analytics.js";
+  import {
+    getFirestore, collection, addDoc, doc, updateDoc, serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDQKqc48h9X-_ic1BEA6tj2QVtzndZoiuQ",
+    authDomain: "codewithsammy-6cf08.firebaseapp.com",
+    projectId: "codewithsammy-6cf08",
+    storageBucket: "codewithsammy-6cf08.firebasestorage.app",
+    messagingSenderId: "316035486653",
+    appId: "1:316035486653:web:50bc0a5110096eb39ff8d4",
+    measurementId: "G-SD9WJW33HC"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  getAnalytics(app);
+  const db = getFirestore(app);
+
+  // Helpers used by the registration flow (see main script at bottom of page).
+  window.fb = {
+    // Create a registration document; returns the new doc id.
+    async saveRegistration(data){
+      const ref = await addDoc(collection(db, "registrations"), {
+        ...data,
+        status: "pending",
+        createdAt: serverTimestamp()
+      });
+      return ref.id;
+    },
+    // Mark a registration as paid once Paystack confirms.
+    async markPaid(id, paymentRef){
+      await updateDoc(doc(db, "registrations", id), {
+        status: "paid",
+        paymentRef,
+        paidAt: serverTimestamp()
+      });
+    }
+  };
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -394,7 +438,7 @@
   // Replace with your real Paystack PUBLIC key from dashboard.paystack.com
   const PAYSTACK_PUBLIC_KEY = "pk_test_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
 
-  function payWithPaystack(){
+  async function payWithPaystack(){
     const name  = document.getElementById('fname').value.trim();
     const email = document.getElementById('email').value.trim();
     const phone = document.getElementById('phone').value.trim();
@@ -409,6 +453,28 @@
       return;
     }
 
+    // Save the user's details to Firestore before opening the payment window.
+    const payBtn = document.getElementById('payBtn');
+    let regId = null;
+    try {
+      payBtn.disabled = true;
+      showMsg("Saving your details…", "");
+      regId = await window.fb.saveRegistration({
+        fullName: name,
+        email,
+        phone,
+        track,
+        plan: selectedPlan.name,
+        amount: selectedPlan.amount
+      });
+    } catch (err) {
+      console.error("Failed to save registration:", err);
+      showMsg("We couldn't save your details. Please check your connection and try again.", "err");
+      payBtn.disabled = false;
+      return;
+    }
+    payBtn.disabled = false;
+
     const handler = PaystackPop.setup({
       key: PAYSTACK_PUBLIC_KEY,
       email: email,
@@ -416,6 +482,7 @@
       currency: "NGN",
       ref: "CWS-" + Date.now(),
       metadata: {
+        registrationId: regId,
         custom_fields: [
           { display_name: "Full Name", variable_name: "full_name", value: name },
           { display_name: "Phone", variable_name: "phone", value: phone },
@@ -424,6 +491,12 @@
         ]
       },
       callback: function(response){
+        // Mark the saved registration as paid (fire-and-forget).
+        if (regId) {
+          window.fb.markPaid(regId, response.reference).catch(function(err){
+            console.error("Failed to mark registration paid:", err);
+          });
+        }
         showMsg("Payment successful! Reference: " + response.reference + ". Check your email for onboarding.", "ok");
       },
       onClose: function(){
