@@ -2,41 +2,50 @@ rules_version = '2';
 
 // Security rules for the CodeWithSammy website.
 //
-// The public registration form (index.html) writes to the `registrations`
-// collection with no user authentication, so we allow anonymous `create`
-// and a narrow `update` (to flag a record as paid after Paystack returns).
-// Reading, listing and deleting registrations is denied from the client —
-// use the Firebase console or a trusted server (Admin SDK) for that.
+// Auth model: only the site ADMIN has an account. Students never sign in —
+// they submit the public registration form (index.html) anonymously.
 //
-// NOTE: The client-side "paid" flag is convenience only and is spoofable.
-// For trustworthy payment status, verify payments server-side with a
-// Paystack webhook (e.g. a Cloud Function using the Admin SDK, which
-// bypasses these rules).
+//   * Anonymous visitors  -> may ONLY create a registration (validated).
+//   * The admin (signed in) -> may read, update and delete registrations.
+//
+// Paid status is NOT set by the anonymous client (that would be spoofable
+// and students have no account to scope an update to). Instead, mark a
+// registration "paid" either from an admin tool, or — recommended — from a
+// Paystack webhook running with the Firebase Admin SDK, which bypasses these
+// rules entirely.
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // ---- Admin identity -------------------------------------------------
+    // Create the admin account in Firebase Console -> Authentication, then
+    // paste its UID(s) below (Authentication -> Users -> "User UID").
+    // Add more UIDs to the list to grant additional admins.
+    function isAdmin() {
+      return request.auth != null
+          && request.auth.uid in [
+               'PASTE_ADMIN_UID_HERE'
+             ];
+    }
+
+    // ---- Validation for a new public registration -----------------------
     function isValidRegistration(data) {
-      return data.fullName is string && data.fullName.size() > 0
+      return data.keys().hasOnly(['fullName', 'email', 'phone', 'track', 'plan', 'amount', 'status', 'createdAt'])
+          && data.fullName is string && data.fullName.size() > 0 && data.fullName.size() <= 120
           && data.email is string && data.email.matches('^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$')
-          && data.phone is string && data.phone.size() > 0
-          && data.track is string
-          && data.plan is string
-          && data.amount is number
-          && data.status == "pending";
+          && data.phone is string && data.phone.size() > 0 && data.phone.size() <= 40
+          && data.track is string && data.track.size() <= 80
+          && data.plan is string && data.plan.size() <= 40
+          && data.amount is number && data.amount >= 0
+          && data.status == 'pending'
+          && data.createdAt is timestamp;
     }
 
     match /registrations/{regId} {
-      // Anyone can submit a new registration, but the payload must look sane.
+      // Anyone can submit a registration — no account required.
       allow create: if isValidRegistration(request.resource.data);
 
-      // Allow flipping a pending registration to "paid" from the client.
-      allow update: if resource.data.status == "pending"
-                    && request.resource.data.status == "paid"
-                    && request.resource.data.fullName == resource.data.fullName
-                    && request.resource.data.email == resource.data.email;
-
-      // Registrations are not publicly readable or deletable.
-      allow read, delete: if false;
+      // Only the admin can view, edit or remove registrations.
+      allow read, update, delete: if isAdmin();
     }
 
     // Everything else is closed by default.

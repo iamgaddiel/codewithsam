@@ -11,7 +11,7 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js";
   import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-analytics.js";
   import {
-    getFirestore, collection, addDoc, doc, updateDoc, serverTimestamp
+    getFirestore, collection, addDoc, serverTimestamp
   } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
 
   const firebaseConfig = {
@@ -29,6 +29,8 @@
   const db = getFirestore(app);
 
   // Helpers used by the registration flow (see main script at bottom of page).
+  // Anonymous visitors can only CREATE a registration; the "paid" status is
+  // set later by the admin / a Paystack webhook (see firestore.rules).
   window.fb = {
     // Create a registration document; returns the new doc id.
     async saveRegistration(data){
@@ -38,14 +40,6 @@
         createdAt: serverTimestamp()
       });
       return ref.id;
-    },
-    // Mark a registration as paid once Paystack confirms.
-    async markPaid(id, paymentRef){
-      await updateDoc(doc(db, "registrations", id), {
-        status: "paid",
-        paymentRef,
-        paidAt: serverTimestamp()
-      });
     }
   };
 </script>
@@ -491,12 +485,9 @@
         ]
       },
       callback: function(response){
-        // Mark the saved registration as paid (fire-and-forget).
-        if (regId) {
-          window.fb.markPaid(regId, response.reference).catch(function(err){
-            console.error("Failed to mark registration paid:", err);
-          });
-        }
+        // Payment confirmation (marking the record "paid") is reconciled
+        // server-side against Paystack — see firestore.rules. The reference
+        // is also attached to the Paystack transaction via metadata above.
         showMsg("Payment successful! Reference: " + response.reference + ". Check your email for onboarding.", "ok");
       },
       onClose: function(){
