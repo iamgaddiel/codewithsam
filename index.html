@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CodeWithSam — Learn to build real software</title>
+<script src="https://js.paystack.co/v1/inline.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0B0F1A;          /* deep near-black navy */
+    --panel:#121826;
+    --line:#22304A;
+    --paper:#F4F6FB;
+    --mute:#8A97B0;
+    --white:#FFFFFF;
+    --lime:#C6FF3A;         /* electric contrast accent */
+    --lime-dim:#A6E024;
+    --violet:#7A5CFF;       /* secondary accent */
+    --coral:#FF5C7A;
+    --r:14px;
+    --maxw:1140px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--ink);
+    color:var(--paper);
+    font-family:'Inter',system-ui,sans-serif;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  h1,h2,h3,.display{font-family:'Space Grotesk',sans-serif;line-height:1.05;letter-spacing:-.02em}
+  .mono{font-family:'JetBrains Mono',monospace}
+  a{color:inherit;text-decoration:none}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+  .accent{color:var(--lime)}
+
+  /* NAV */
+  nav{position:sticky;top:0;z-index:50;background:rgba(11,15,26,.82);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+  .nav-inner{display:flex;align-items:center;justify-content:space-between;height:68px}
+  .logo{display:flex;align-items:center;gap:10px;font-family:'Space Grotesk';font-weight:700;font-size:19px}
+  .logo .dot{width:11px;height:11px;background:var(--lime);border-radius:3px;box-shadow:0 0 14px var(--lime)}
+  .nav-links{display:flex;gap:30px;align-items:center}
+  .nav-links a{font-size:14px;color:var(--mute);font-weight:500;transition:color .2s}
+  .nav-links a:hover{color:var(--paper)}
+  .btn{cursor:pointer;border:none;font-family:'Space Grotesk';font-weight:600;border-radius:10px;transition:transform .15s, box-shadow .2s;font-size:15px}
+  .btn-primary{background:var(--lime);color:var(--ink);padding:11px 22px;box-shadow:0 4px 22px rgba(198,255,58,.28)}
+  .btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(198,255,58,.4)}
+  .btn-ghost{background:transparent;border:1px solid var(--line);color:var(--paper);padding:11px 20px}
+  .btn-ghost:hover{border-color:var(--lime);color:var(--lime)}
+
+  /* HERO */
+  header{position:relative;padding:80px 0 90px;overflow:hidden}
+  .glow{position:absolute;border-radius:50%;filter:blur(90px);opacity:.35;z-index:0}
+  .glow.a{width:480px;height:480px;background:var(--violet);top:-160px;right:-120px}
+  .glow.b{width:400px;height:400px;background:var(--lime);bottom:-200px;left:-140px;opacity:.18}
+  .hero-grid{position:relative;z-index:2;display:grid;grid-template-columns:1.05fr .95fr;gap:56px;align-items:center}
+  .eyebrow{display:inline-flex;align-items:center;gap:9px;font-family:'JetBrains Mono';font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--lime);border:1px solid var(--line);padding:7px 14px;border-radius:100px;margin-bottom:26px}
+  .eyebrow .pulse{width:7px;height:7px;border-radius:50%;background:var(--lime);animation:pulse 1.8s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+  h1{font-size:clamp(40px,6vw,68px);font-weight:700}
+  h1 .stroke{color:transparent;-webkit-text-stroke:1.4px var(--lime)}
+  .lede{color:var(--mute);font-size:18px;max-width:480px;margin:24px 0 34px}
+  .hero-cta{display:flex;gap:14px;flex-wrap:wrap}
+  .hero-stats{display:flex;gap:34px;margin-top:44px;padding-top:26px;border-top:1px solid var(--line)}
+  .stat .n{font-family:'Space Grotesk';font-weight:700;font-size:26px;color:var(--white)}
+  .stat .l{font-size:12.5px;color:var(--mute);font-family:'JetBrains Mono')}
+
+  /* CODE WINDOW */
+  .code-card{background:var(--panel);border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:0 30px 70px rgba(0,0,0,.5)}
+  .code-top{display:flex;align-items:center;gap:8px;padding:14px 16px;border-bottom:1px solid var(--line);background:#0E1420}
+  .code-top .c{width:12px;height:12px;border-radius:50%}
+  .c.r{background:#FF5F57}.c.y{background:#FEBC2E}.c.g{background:#28C840}
+  .code-file{margin-left:12px;font-family:'JetBrains Mono';font-size:12.5px;color:var(--mute)}
+  .code-body{padding:22px 20px;font-family:'JetBrains Mono';font-size:13.5px;line-height:1.9}
+  .code-body .ln{color:#4A5878;user-select:none;margin-right:16px}
+  .kw{color:var(--violet)}.fn{color:var(--lime)}.str{color:#7CE0B4}.cm{color:#4A5878}.var{color:#E4B3FF}
+
+  /* SECTION SHELL */
+  section{padding:88px 0;position:relative}
+  .sec-head{max-width:640px;margin-bottom:52px}
+  .sec-tag{font-family:'JetBrains Mono';font-size:12.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--lime);margin-bottom:14px;display:block}
+  h2{font-size:clamp(30px,4.2vw,46px);font-weight:700}
+  .sec-head p{color:var(--mute);font-size:17px;margin-top:16px}
+
+  /* TRACKS */
+  .tracks{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+  .track{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:30px 26px;transition:border-color .25s, transform .25s;position:relative;overflow:hidden}
+  .track:hover{border-color:var(--lime);transform:translateY(-5px)}
+  .track .num{font-family:'JetBrains Mono';font-size:13px;color:var(--lime);margin-bottom:18px}
+  .track h3{font-size:22px;margin-bottom:10px}
+  .track p{color:var(--mute);font-size:15px;margin-bottom:18px}
+  .track ul{list-style:none;display:flex;flex-direction:column;gap:9px}
+  .track li{font-size:14px;color:var(--paper);display:flex;gap:10px;align-items:center}
+  .track li::before{content:"›";color:var(--lime);font-weight:700}
+
+  /* WHY / FEATURES strip */
+  .feat{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
+  .feat-item{border-top:2px solid var(--lime);padding-top:18px}
+  .feat-item h4{font-family:'Space Grotesk';font-size:17px;margin-bottom:8px}
+  .feat-item p{color:var(--mute);font-size:14px}
+
+  /* PRICING */
+  #pricing{background:linear-gradient(180deg,var(--ink),#0E1626)}
+  .price-wrap{display:grid;grid-template-columns:1fr 1fr;gap:26px;max-width:860px;margin:0 auto}
+  .price-card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:36px 32px;position:relative}
+  .price-card.featured{border-color:var(--lime);box-shadow:0 20px 60px rgba(198,255,58,.14)}
+  .badge{position:absolute;top:-13px;right:26px;background:var(--lime);color:var(--ink);font-family:'JetBrains Mono';font-size:11.5px;font-weight:600;padding:5px 12px;border-radius:100px;letter-spacing:.04em}
+  .price-card h3{font-size:21px;margin-bottom:6px}
+  .price-card .desc{color:var(--mute);font-size:14px;margin-bottom:22px}
+  .price{font-family:'Space Grotesk';font-weight:700;font-size:46px;color:var(--white);line-height:1}
+  .price span{font-size:16px;color:var(--mute);font-weight:500}
+  .price-card ul{list-style:none;margin:24px 0 28px;display:flex;flex-direction:column;gap:12px}
+  .price-card li{font-size:14.5px;display:flex;gap:11px;align-items:flex-start;color:var(--paper)}
+  .price-card li .tick{color:var(--lime);font-weight:700}
+  .price-card .btn{width:100%;padding:13px}
+
+  /* REGISTER / FORM */
+  #register{background:radial-gradient(circle at 70% 0%,rgba(122,92,255,.14),transparent 55%)}
+  .reg-grid{display:grid;grid-template-columns:.9fr 1.1fr;gap:56px;align-items:center}
+  .reg-copy h2{margin-bottom:18px}
+  .reg-copy p{color:var(--mute);font-size:16px;margin-bottom:26px}
+  .flow{display:flex;flex-direction:column;gap:16px}
+  .flow-step{display:flex;gap:16px;align-items:flex-start}
+  .flow-step .idx{flex:none;width:34px;height:34px;border-radius:9px;background:var(--panel);border:1px solid var(--line);display:grid;place-items:center;font-family:'JetBrains Mono';font-size:14px;color:var(--lime);font-weight:600}
+  .flow-step h4{font-family:'Space Grotesk';font-size:16px}
+  .flow-step p{font-size:14px;margin:2px 0 0}
+  .card-form{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:34px 30px}
+  .card-form h3{font-size:22px;margin-bottom:6px}
+  .card-form .sub{color:var(--mute);font-size:14px;margin-bottom:24px}
+  .field{margin-bottom:16px}
+  .field label{display:block;font-size:13px;color:var(--paper);margin-bottom:7px;font-weight:500}
+  .field input,.field select{width:100%;background:var(--ink);border:1px solid var(--line);color:var(--white);padding:13px 14px;border-radius:10px;font-size:15px;font-family:'Inter';transition:border-color .2s}
+  .field input:focus,.field select:focus{outline:none;border-color:var(--lime)}
+  .field input::placeholder{color:#5B6884}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .plan-note{background:var(--ink);border:1px dashed var(--line);border-radius:10px;padding:13px 15px;font-size:13.5px;color:var(--mute);margin-bottom:20px;display:flex;justify-content:space-between;align-items:center}
+  .plan-note b{color:var(--lime);font-family:'JetBrains Mono'}
+  #payBtn{width:100%;padding:15px;font-size:16px;display:flex;align-items:center;justify-content:center;gap:9px}
+  .secure{text-align:center;font-size:12px;color:var(--mute);margin-top:14px;font-family:'JetBrains Mono'}
+  .msg{margin-top:14px;padding:12px 14px;border-radius:10px;font-size:14px;display:none}
+  .msg.show{display:block}
+  .msg.ok{background:rgba(198,255,58,.1);border:1px solid var(--lime);color:var(--lime)}
+  .msg.err{background:rgba(255,92,122,.1);border:1px solid var(--coral);color:var(--coral)}
+
+  /* TESTIMONIAL */
+  .quote{max-width:800px;margin:0 auto;text-align:center}
+  .quote blockquote{font-family:'Space Grotesk';font-size:clamp(22px,3vw,30px);font-weight:500;line-height:1.35;letter-spacing:-.01em}
+  .quote blockquote .accent{font-weight:700}
+  .quote .who{margin-top:22px;color:var(--mute);font-family:'JetBrains Mono';font-size:14px}
+
+  /* FOOTER */
+  footer{border-top:1px solid var(--line);padding:48px 0 40px}
+  .foot-grid{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:20px}
+  .foot-links{display:flex;gap:26px}
+  .foot-links a{font-size:14px;color:var(--mute)}
+  .foot-links a:hover{color:var(--lime)}
+  .copy{color:#5B6884;font-size:13px;font-family:'JetBrains Mono'}
+
+  @media(max-width:900px){
+    .hero-grid,.reg-grid{grid-template-columns:1fr;gap:40px}
+    .tracks,.feat,.price-wrap{grid-template-columns:1fr}
+    .feat{gap:26px}
+    .nav-links{display:none}
+    .hero-stats{gap:22px}
+  }
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="wrap nav-inner">
+    <div class="logo"><span class="dot"></span><span>CodeWith<span class="accent">Sam</span></span></div>
+    <div class="nav-links">
+      <a href="#tracks">Tracks</a>
+      <a href="#why">Why us</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#register">Register</a>
+    </div>
+    <button class="btn btn-primary" onclick="document.getElementById('register').scrollIntoView()">Enroll now</button>
+  </div>
+</nav>
+
+<!-- HERO -->
+<header>
+  <div class="glow a"></div>
+  <div class="glow b"></div>
+  <div class="wrap hero-grid">
+    <div>
+      <span class="eyebrow"><span class="pulse"></span>Cohort 07 · Enrolling now</span>
+      <h1>Stop watching tutorials.<br><span class="stroke">Start shipping</span> real code.</h1>
+      <p class="lede">CodeWithSam is a hands-on coding bootcamp for students. Learn by building projects that actually run — mentored by engineers, not slideshows.</p>
+      <div class="hero-cta">
+        <button class="btn btn-primary" onclick="document.getElementById('register').scrollIntoView()">Register & pay →</button>
+        <button class="btn btn-ghost" onclick="document.getElementById('tracks').scrollIntoView()">Explore tracks</button>
+      </div>
+      <div class="hero-stats">
+        <div class="stat"><div class="n">2,400+</div><div class="l">students trained</div></div>
+        <div class="stat"><div class="n">12wk</div><div class="l">project-based</div></div>
+        <div class="stat"><div class="n">89%</div><div class="l">finish & ship</div></div>
+      </div>
+    </div>
+
+    <div class="code-card">
+      <div class="code-top">
+        <span class="c r"></span><span class="c y"></span><span class="c g"></span>
+        <span class="code-file">welcome.js</span>
+      </div>
+      <div class="code-body">
+        <div><span class="ln">1</span><span class="cm">// your first day at CodeWithSam</span></div>
+        <div><span class="ln">2</span><span class="kw">function</span> <span class="fn">learn</span>(student) {</div>
+        <div><span class="ln">3</span>&nbsp;&nbsp;<span class="kw">const</span> <span class="var">skills</span> = [<span class="str">"HTML"</span>, <span class="str">"JS"</span>, <span class="str">"Python"</span>];</div>
+        <div><span class="ln">4</span>&nbsp;&nbsp;<span class="kw">while</span> (student.<span class="var">curious</span>) {</div>
+        <div><span class="ln">5</span>&nbsp;&nbsp;&nbsp;&nbsp;student.<span class="fn">build</span>(<span class="str">"real projects"</span>);</div>
+        <div><span class="ln">6</span>&nbsp;&nbsp;}</div>
+        <div><span class="ln">7</span>&nbsp;&nbsp;<span class="kw">return</span> <span class="str">"job-ready 🚀"</span>;</div>
+        <div><span class="ln">8</span>}</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- TRACKS -->
+<section id="tracks">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="sec-tag">// choose your path</span>
+      <h2>Three tracks. One goal — you, building things that work.</h2>
+      <p>Each track runs 12 weeks with weekly live sessions, code reviews, and a capstone project you can put in your portfolio.</p>
+    </div>
+    <div class="tracks">
+      <div class="track">
+        <div class="num">TRACK_01</div>
+        <h3>Web Foundations</h3>
+        <p>From zero to your first live website. Perfect for absolute beginners.</p>
+        <ul><li>HTML, CSS & responsive design</li><li>JavaScript fundamentals</li><li>Git & deploying to the web</li><li>Capstone: personal portfolio</li></ul>
+      </div>
+      <div class="track">
+        <div class="num">TRACK_02</div>
+        <h3>Full-Stack Dev</h3>
+        <p>Build complete apps with a front end, back end, and database.</p>
+        <ul><li>React & modern UI</li><li>Node, APIs & auth</li><li>Databases & deployment</li><li>Capstone: full web app</li></ul>
+      </div>
+      <div class="track">
+        <div class="num">TRACK_03</div>
+        <h3>Python & Data</h3>
+        <p>Program with Python and turn raw data into real insight.</p>
+        <ul><li>Python core & automation</li><li>Pandas & data analysis</li><li>Intro to machine learning</li><li>Capstone: data dashboard</li></ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- WHY -->
+<section id="why" style="padding-top:0">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="sec-tag">// why CodeWithSam</span>
+      <h2>Built for students who learn by doing.</h2>
+    </div>
+    <div class="feat">
+      <div class="feat-item"><h4>Live mentorship</h4><p>Real engineers review your code every week — no bots, no recordings-only.</p></div>
+      <div class="feat-item"><h4>Project-first</h4><p>You ship 4+ working projects. Theory shows up only when you need it.</p></div>
+      <div class="feat-item"><h4>Small cohorts</h4><p>Capped seats so every student gets attention and feedback.</p></div>
+      <div class="feat-item"><h4>Career support</h4><p>Portfolio reviews, GitHub polish, and interview prep to land the role.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section id="pricing">
+  <div class="wrap">
+    <div class="sec-head" style="margin-left:auto;margin-right:auto;text-align:center">
+      <span class="sec-tag">// simple pricing</span>
+      <h2>One payment. Full access to your cohort.</h2>
+      <p>Registration secures your seat. Pay securely with Paystack after signing up.</p>
+    </div>
+    <div class="price-wrap">
+      <div class="price-card">
+        <h3>Student</h3>
+        <p class="desc">Everything you need to complete one full track.</p>
+        <div class="price">₦45,000<span> / cohort</span></div>
+        <ul>
+          <li><span class="tick">✓</span> 12 weeks of live classes</li>
+          <li><span class="tick">✓</span> Weekly code reviews</li>
+          <li><span class="tick">✓</span> All course materials & recordings</li>
+          <li><span class="tick">✓</span> Certificate of completion</li>
+        </ul>
+        <button class="btn btn-ghost" data-plan="Student" data-amount="45000" onclick="selectPlan(this)">Choose Student</button>
+      </div>
+      <div class="price-card featured">
+        <span class="badge">MOST POPULAR</span>
+        <h3>Pro</h3>
+        <p class="desc">Full track plus 1-on-1 mentorship and career support.</p>
+        <div class="price">₦75,000<span> / cohort</span></div>
+        <ul>
+          <li><span class="tick">✓</span> Everything in Student</li>
+          <li><span class="tick">✓</span> 1-on-1 mentor sessions</li>
+          <li><span class="tick">✓</span> Portfolio & GitHub review</li>
+          <li><span class="tick">✓</span> Interview prep & job referrals</li>
+        </ul>
+        <button class="btn btn-primary" data-plan="Pro" data-amount="75000" onclick="selectPlan(this)">Choose Pro</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- REGISTER -->
+<section id="register">
+  <div class="wrap reg-grid">
+    <div class="reg-copy">
+      <span class="sec-tag">// secure your seat</span>
+      <h2>Register, then pay.</h2>
+      <p>Fill in your details and complete payment with Paystack. Seats are limited and confirmed on payment.</p>
+      <div class="flow">
+        <div class="flow-step"><div class="idx">1</div><div><h4>Create your profile</h4><p>Tell us who you are and your chosen track.</p></div></div>
+        <div class="flow-step"><div class="idx">2</div><div><h4>Pay with Paystack</h4><p>Card, bank transfer, or USSD — fully secure.</p></div></div>
+        <div class="flow-step"><div class="idx">3</div><div><h4>Get onboarded</h4><p>Receive your welcome kit and cohort schedule by email.</p></div></div>
+      </div>
+    </div>
+
+    <div class="card-form">
+      <h3>Registration</h3>
+      <p class="sub">Step 1 of 2 — your details</p>
+
+      <div class="field"><label for="fname">Full name</label><input id="fname" type="text" placeholder="Ada Lovelace"></div>
+      <div class="field"><label for="email">Email address</label><input id="email" type="email" placeholder="ada@email.com"></div>
+      <div class="row2">
+        <div class="field"><label for="phone">Phone</label><input id="phone" type="tel" placeholder="0801 234 5678"></div>
+        <div class="field"><label for="track">Track</label>
+          <select id="track">
+            <option>Web Foundations</option>
+            <option>Full-Stack Dev</option>
+            <option>Python & Data</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="plan-note">
+        <span>Selected plan: <b id="planName">Pro</b></span>
+        <span>Total: <b id="planPrice">₦75,000</b></span>
+      </div>
+
+      <button class="btn btn-primary" id="payBtn" onclick="payWithPaystack()">🔒 Register & pay with Paystack</button>
+      <div class="secure">256-bit encrypted · powered by Paystack</div>
+      <div class="msg" id="formMsg"></div>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIAL -->
+<section style="padding-top:0">
+  <div class="wrap quote">
+    <blockquote>“I went from copying tutorials to <span class="accent">building and deploying my own app</span> in one cohort. The weekly reviews changed everything.”</blockquote>
+    <div class="who">— Zainab O., Full-Stack Dev · Cohort 05</div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="wrap foot-grid">
+    <div class="logo"><span class="dot"></span><span>CodeWith<span class="accent">Sam</span></span></div>
+    <div class="foot-links">
+      <a href="#tracks">Tracks</a><a href="#pricing">Pricing</a><a href="#register">Register</a><a href="#">Contact</a>
+    </div>
+    <div class="copy">© 2026 CodeWithSam. Built with code.</div>
+  </div>
+</footer>
+
+<script>
+  // ---- Plan selection ----
+  let selectedPlan = { name: "Pro", amount: 75000 };
+
+  function selectPlan(btn){
+    selectedPlan = { name: btn.dataset.plan, amount: parseInt(btn.dataset.amount, 10) };
+    document.getElementById('planName').textContent = selectedPlan.name;
+    document.getElementById('planPrice').textContent = "₦" + selectedPlan.amount.toLocaleString();
+    document.getElementById('register').scrollIntoView({behavior:'smooth'});
+  }
+
+  function showMsg(text, type){
+    const m = document.getElementById('formMsg');
+    m.textContent = text;
+    m.className = 'msg show ' + type;
+  }
+
+  // ---- Paystack ----
+  // Replace with your real Paystack PUBLIC key from dashboard.paystack.com
+  const PAYSTACK_PUBLIC_KEY = "pk_test_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+
+  function payWithPaystack(){
+    const name  = document.getElementById('fname').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const phone = document.getElementById('phone').value.trim();
+    const track = document.getElementById('track').value;
+
+    if(!name || !email || !phone){
+      showMsg("Please fill in your name, email and phone before paying.", "err");
+      return;
+    }
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){
+      showMsg("Please enter a valid email address.", "err");
+      return;
+    }
+
+    const handler = PaystackPop.setup({
+      key: PAYSTACK_PUBLIC_KEY,
+      email: email,
+      amount: selectedPlan.amount * 100, // Paystack expects the amount in kobo
+      currency: "NGN",
+      ref: "CWS-" + Date.now(),
+      metadata: {
+        custom_fields: [
+          { display_name: "Full Name", variable_name: "full_name", value: name },
+          { display_name: "Phone", variable_name: "phone", value: phone },
+          { display_name: "Track", variable_name: "track", value: track },
+          { display_name: "Plan", variable_name: "plan", value: selectedPlan.name }
+        ]
+      },
+      callback: function(response){
+        showMsg("Payment successful! Reference: " + response.reference + ". Check your email for onboarding.", "ok");
+      },
+      onClose: function(){
+        showMsg("Payment window closed before completing. Your seat isn't confirmed yet.", "err");
+      }
+    });
+    handler.openIframe();
+  }
+</script>
+</body>
+</html>
