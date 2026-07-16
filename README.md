@@ -7,23 +7,28 @@ Paystack-verified payment webhook and a Firebase-backed admin panel.
 
 | Path | What it is |
 |------|------------|
-| `index.html` | The public website. Handles registration + Paystack checkout, and renders pricing/cohort from admin-managed settings. |
+| `index.html` | The public website. Handles registration and renders pricing/cohort from admin-managed settings. No payment keys live here. |
 | `admin.html` | The admin panel (also served at `/admin`). Firebase Auth login, paid-students list, and pricing/cohort settings editor. |
-| `success.html` | Post-payment confirmation page (served at `/success`). Paystack redirects here after checkout; it verifies the payment and shows a receipt. |
-| `netlify/functions/paystack-webhook.js` | Netlify serverless function. Verifies a Paystack payment, then writes the confirmed registration to Firestore with the Admin SDK. |
-| `netlify/functions/verify-payment.js` | Read-only Netlify function (`/api/verify-payment`). Confirms a reference with Paystack so the success page shows a verified result. |
+| `success.html` | Post-payment confirmation page (served at `/success`). Checkout redirects here; it verifies the payment and shows a receipt. |
+| `netlify/functions/initialize-payment.js` | Netlify function (`/api/initialize-payment`). Computes the amount server-side from admin prices and starts the transaction with the secret key. |
+| `netlify/functions/paystack-webhook.js` | Netlify function. Verifies a payment, then writes the confirmed registration to Firestore with the Admin SDK. |
+| `netlify/functions/verify-payment.js` | Read-only Netlify function (`/api/verify-payment`). Confirms a reference so the success page shows a verified result. |
 | `firestore.rules` | Firestore security rules. |
 | `firebase.json`, `.firebaserc` | Firebase config (used only to deploy the Firestore rules). |
-| `netlify.toml` | Netlify build + routing (`/admin`, `/api/paystack-webhook`). |
-| `package.json` | Declares `firebase-admin` for the Netlify function. |
+| `netlify.toml` | Netlify build + routing (`/admin`, `/success`, `/api/*`). |
+| `package.json` | Declares `firebase-admin` for the Netlify functions. |
 
 ## How it works
 
 ```
-Student → index.html → Paystack checkout
-                          │  (payment succeeds)
+Student → index.html → POST /api/initialize-payment (Netlify function)
+                          │  1. compute amount from admin prices (Firestore)
+                          │  2. start transaction with the SECRET key
                           ▼
-             Paystack → POST /api/paystack-webhook (Netlify function)
+                       redirect to the hosted checkout
+                          │  (payment succeeds → redirect to /success)
+                          ▼
+      Paystack → POST /api/paystack-webhook (Netlify function)
                           │  1. verify signature (HMAC-SHA512)
                           │  2. re-verify txn with Paystack API
                           │  3. write registration via Admin SDK
@@ -37,10 +42,11 @@ Student → index.html → Paystack checkout
              index.html reads config/site to render pricing + cohort
 ```
 
-The browser **never** writes registrations. Details ride along in the Paystack
-transaction metadata, and only the webhook — after verifying the payment
-directly with Paystack — writes the record. That makes a forged "paid"
-registration impossible.
+The browser holds **no payment keys** and **never** writes registrations. The
+amount is computed server-side from the admin-managed prices (so it can't be
+tampered with), and only the webhook — after verifying the payment directly
+with Paystack — writes the record. That makes a forged "paid" registration
+impossible.
 
 ### Data model
 
@@ -48,8 +54,11 @@ registration impossible.
 
 | Field | Type | Notes |
 |-------|------|-------|
-| `fullName`, `email`, `phone`, `track`, `plan` | string | From the registration form (via Paystack metadata). |
+| `fullName`, `email`, `phone`, `track`, `plan` | string | From the registration form (via transaction metadata). |
+| `planId` | string | `bootcamp` / `student` / `pro`. |
 | `cohort` | number | Cohort the student paid for. |
+| `people` | number | Number of registrants (Bootcamp groups; 1 otherwise). |
+| `participants` | array | Bootcamp group members `{ name, age }` (null for other plans). |
 | `amount` | number | Naira (Paystack reports kobo; the webhook divides by 100). |
 | `currency` | string | e.g. `NGN`. |
 | `status` | string | Always `paid`. |
@@ -57,12 +66,17 @@ registration impossible.
 | `paymentRef` | string | Paystack reference (also the doc id). |
 | `paidAt`, `createdAt` | timestamp | |
 
+Bootcamp is a teens (13–16) track: extra registrants add `name + age` fields
+(max 3 people), and a group of 2+ gets a flat ₦5,000 off the order. The amount
+is always recomputed server-side in `initialize-payment`.
+
 **`config/site`** — written by the admin panel, read by the public site:
 
 ```json
 {
   "cohort": { "number": 7, "startDate": "2026-08-01", "endDate": "2026-10-24" },
   "plans": [
+    { "id": "bootcamp", "name": "Bootcamp", "amount": 30000, "benefits": ["...", "..."] },
     { "id": "student", "name": "Student", "amount": 45000, "benefits": ["...", "..."] },
     { "id": "pro", "name": "Pro", "amount": 75000, "benefits": ["...", "..."] }
   ],
@@ -96,16 +110,17 @@ registration impossible.
 
 ### 2. Paystack
 
-1. From the Paystack dashboard, copy your **public** key (`pk_...`) into
-   `index.html` (replace the `PAYSTACK_PUBLIC_KEY` placeholder).
-2. After the site is deployed (below), set your webhook URL in
+Payment is initialized **server-side**, so no public key goes in the frontend —
+only the secret key (set in Netlify, step 3). All you configure here is:
+
+1. After the site is deployed (below), set your webhook URL in
    **Settings → API Keys & Webhooks → Webhook URL** to:
    ```
    https://<your-site>.netlify.app/api/paystack-webhook
    ```
-   The checkout is inline and redirects to `/success?reference=...` itself, so
-   a dashboard "callback URL" isn't required — but you may optionally set it to
-   `https://<your-site>.netlify.app/success` for redirect-based flows.
+   The transaction is created with `callback_url` set to
+   `https://<your-site>.netlify.app/success`, so the customer is redirected
+   there automatically after paying.
 
 ### 3. Netlify
 

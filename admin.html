@@ -172,7 +172,7 @@
       <!-- Paid users -->
       <section class="panel" id="students">
         <h2>Paid students</h2>
-        <p class="hint">Everyone whose payment Paystack has confirmed.</p>
+        <p class="hint">Everyone whose payment has been confirmed.</p>
         <div class="stats">
           <div class="stat"><div class="n" id="statCount">—</div><div class="l">paid students</div></div>
           <div class="stat"><div class="n" id="statRevenue">—</div><div class="l">total collected</div></div>
@@ -234,8 +234,17 @@
   const auth = getAuth(app);
   const db = getFirestore(app);
 
-  // The two pricing plans shown on the site, matched by id to the price cards.
+  // The pricing plans shown on the site, matched by id to the price cards.
   const PLAN_DEFS = [
+    {
+      id: "bootcamp", name: "Bootcamp", amount: 30000,
+      benefits: [
+        "Designed for ages 13–16",
+        "Hands-on, project-based lessons",
+        "Small groups with mentor guidance",
+        "Register siblings or friends together"
+      ]
+    },
     {
       id: "student", name: "Student", amount: 45000,
       benefits: [

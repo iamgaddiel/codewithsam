@@ -4,15 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CodeWithSammy — Learn to build real software</title>
-<script src="https://js.paystack.co/v1/inline.js"></script>
 
 <!-- Firebase (Analytics) -->
 <!--
-  Registrations are NOT written from the browser. The user's details are
-  attached to the Paystack transaction as metadata, and the Netlify webhook
-  function (netlify/functions/paystack-webhook.js) verifies the payment and
-  writes the record to Firestore with the Admin SDK. This makes a forged
-  "paid" record impossible.
+  Registrations are NOT written from the browser, and no payment keys live
+  here. The registration form posts to a serverless function that starts the
+  transaction server-side and redirects to the hosted checkout. A webhook then
+  verifies the payment and writes the record to Firestore with the Admin SDK,
+  so a forged "paid" record is impossible.
 -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js";
@@ -147,7 +146,7 @@
 
   /* PRICING */
   #pricing{background:linear-gradient(180deg,var(--ink),#0E1626)}
-  .price-wrap{display:grid;grid-template-columns:1fr 1fr;gap:26px;max-width:860px;margin:0 auto}
+  .price-wrap{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;max-width:1080px;margin:0 auto}
   .price-card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:36px 32px;position:relative}
   .price-card.featured{border-color:var(--lime);box-shadow:0 20px 60px rgba(198,255,58,.14)}
   .badge{position:absolute;top:-13px;right:26px;background:var(--lime);color:var(--ink);font-family:'JetBrains Mono';font-size:11.5px;font-weight:600;padding:5px 12px;border-radius:100px;letter-spacing:.04em}
@@ -179,6 +178,8 @@
   .field input:focus,.field select:focus{outline:none;border-color:var(--lime)}
   .field input::placeholder{color:#5B6884}
   .row2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .participant{border:1px dashed var(--line);border-radius:10px;padding:12px 14px;margin-bottom:14px}
+  .participant .p-head{font-size:12.5px;color:var(--mute);font-family:'JetBrains Mono';margin-bottom:8px}
   .plan-note{background:var(--ink);border:1px dashed var(--line);border-radius:10px;padding:13px 15px;font-size:13.5px;color:var(--mute);margin-bottom:20px;display:flex;justify-content:space-between;align-items:center}
   .plan-note b{color:var(--lime);font-family:'JetBrains Mono'}
   #payBtn{width:100%;padding:15px;font-size:16px;display:flex;align-items:center;justify-content:center;gap:9px}
@@ -238,7 +239,7 @@
       <h1>Stop watching tutorials.<br><span class="stroke">Start shipping</span> real code.</h1>
       <p class="lede">CodeWithSammy is a hands-on coding bootcamp for students. Learn by building projects that actually run — mentored by engineers, not slideshows.</p>
       <div class="hero-cta">
-        <button class="btn btn-primary" onclick="document.getElementById('register').scrollIntoView()">Register & pay →</button>
+        <button class="btn btn-primary" onclick="document.getElementById('pricing').scrollIntoView()">Register →</button>
         <button class="btn btn-ghost" onclick="document.getElementById('tracks').scrollIntoView()">Explore tracks</button>
       </div>
       <div class="hero-stats">
@@ -320,10 +321,23 @@
     <div class="sec-head" style="margin-left:auto;margin-right:auto;text-align:center">
       <span class="sec-tag">// simple pricing</span>
       <h2>One payment. Full access to your cohort.</h2>
-      <p>Registration secures your seat. Pay securely with Paystack after signing up.</p>
+      <p>Registration secures your seat. Complete your secure payment after signing up.</p>
     </div>
     <div class="price-wrap">
-      <div class="price-card" data-plan-id="student">
+      <div class="price-card" data-plan-id="bootcamp">
+        <h3>Bootcamp</h3>
+        <p class="desc">A beginner-friendly track for teens aged 13–16.</p>
+        <div class="price">₦30,000<span> / cohort</span></div>
+        <ul>
+          <li><span class="tick">✓</span> Designed for ages 13–16</li>
+          <li><span class="tick">✓</span> Hands-on, project-based lessons</li>
+          <li><span class="tick">✓</span> Small groups with mentor guidance</li>
+          <li><span class="tick">✓</span> Register siblings or friends together</li>
+        </ul>
+        <button class="btn btn-ghost" data-plan="Bootcamp" data-amount="30000" onclick="selectPlan(this)">Choose Bootcamp</button>
+      </div>
+      <div class="price-card featured" data-plan-id="student">
+        <span class="badge">MOST POPULAR</span>
         <h3>Student</h3>
         <p class="desc">Everything you need to complete one full track.</p>
         <div class="price">₦45,000<span> / cohort</span></div>
@@ -333,10 +347,9 @@
           <li><span class="tick">✓</span> All course materials & recordings</li>
           <li><span class="tick">✓</span> Certificate of completion</li>
         </ul>
-        <button class="btn btn-ghost" data-plan="Student" data-amount="45000" onclick="selectPlan(this)">Choose Student</button>
+        <button class="btn btn-primary" data-plan="Student" data-amount="45000" onclick="selectPlan(this)">Choose Student</button>
       </div>
-      <div class="price-card featured" data-plan-id="pro">
-        <span class="badge">MOST POPULAR</span>
+      <div class="price-card" data-plan-id="pro">
         <h3>Pro</h3>
         <p class="desc">Full track plus 1-on-1 mentorship and career support.</p>
         <div class="price">₦75,000<span> / cohort</span></div>
@@ -346,7 +359,7 @@
           <li><span class="tick">✓</span> Portfolio & GitHub review</li>
           <li><span class="tick">✓</span> Interview prep & job referrals</li>
         </ul>
-        <button class="btn btn-primary" data-plan="Pro" data-amount="75000" onclick="selectPlan(this)">Choose Pro</button>
+        <button class="btn btn-ghost" data-plan="Pro" data-amount="75000" onclick="selectPlan(this)">Choose Pro</button>
       </div>
     </div>
   </div>
@@ -358,11 +371,11 @@
     <div class="reg-copy">
       <span class="sec-tag">// secure your seat</span>
       <h2>Register, then pay.</h2>
-      <p>Fill in your details and complete payment with Paystack. Seats are limited and confirmed on payment.</p>
+      <p>Fill in your details and complete your secure payment. Seats are limited and confirmed on payment.</p>
       <p class="cohort-dates" id="cohortDates" style="color:var(--lime);font-family:'JetBrains Mono',monospace;font-size:14px;margin-top:4px"></p>
       <div class="flow">
-        <div class="flow-step"><div class="idx">1</div><div><h4>Create your profile</h4><p>Tell us who you are and your chosen track.</p></div></div>
-        <div class="flow-step"><div class="idx">2</div><div><h4>Pay with Paystack</h4><p>Card, bank transfer, or USSD — fully secure.</p></div></div>
+        <div class="flow-step"><div class="idx">1</div><div><h4>Create your profile</h4><p>Tell us who you are and your chosen plan.</p></div></div>
+        <div class="flow-step"><div class="idx">2</div><div><h4>Complete payment</h4><p>Card, bank transfer, or USSD — fully secure.</p></div></div>
         <div class="flow-step"><div class="idx">3</div><div><h4>Get onboarded</h4><p>Receive your welcome kit and cohort schedule by email.</p></div></div>
       </div>
     </div>
@@ -384,13 +397,35 @@
         </div>
       </div>
 
-      <div class="plan-note">
-        <span>Selected plan: <b id="planName">Pro</b></span>
-        <span>Total: <b id="planPrice">₦75,000</b></span>
+      <!-- Bootcamp-only fields (shown when the Bootcamp plan is selected) -->
+      <div id="bootcampFields" style="display:none">
+        <div class="row2">
+          <div class="field"><label for="age">Age (13–16)</label>
+            <select id="age">
+              <option value="13">13</option>
+              <option value="14">14</option>
+              <option value="15">15</option>
+              <option value="16">16</option>
+            </select>
+          </div>
+          <div class="field"><label for="people">Number of people</label>
+            <select id="people" onchange="renderParticipants()">
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+            </select>
+          </div>
+        </div>
+        <div id="participants"><!-- extra (name + age) blocks rendered here --></div>
       </div>
 
-      <button class="btn btn-primary" id="payBtn" onclick="payWithPaystack()">🔒 Register & pay with Paystack</button>
-      <div class="secure">256-bit encrypted · powered by Paystack</div>
+      <div class="plan-note">
+        <span>Selected plan: <b id="planName">Student</b></span>
+        <span>Total: <b id="planPrice">₦45,000</b></span>
+      </div>
+
+      <button class="btn btn-primary" id="payBtn" onclick="submitRegistration()">Register</button>
+      <div class="secure">256-bit encrypted · secure checkout</div>
       <div class="msg" id="formMsg"></div>
     </div>
   </div>
@@ -417,17 +452,73 @@
 
 <script>
   // ---- Plan selection ----
-  let selectedPlan = { name: "Pro", amount: 75000 };
+  const GROUP_DISCOUNT = 5000; // flat ₦5,000 off a Bootcamp order of 2+ people
+  const MAX_PEOPLE = 3;
+
+  let selectedPlan = { id: "student", name: "Student", amount: 45000 };
 
   // Current cohort number, attached to each payment so we know which cohort a
   // student paid for. Updated from the admin-managed site config below.
   let currentCohort = 7;
 
   function selectPlan(btn){
-    selectedPlan = { name: btn.dataset.plan, amount: parseInt(btn.dataset.amount, 10) };
-    document.getElementById('planName').textContent = selectedPlan.name;
-    document.getElementById('planPrice').textContent = "₦" + selectedPlan.amount.toLocaleString();
+    const card = btn.closest('.price-card');
+    selectedPlan = {
+      id: card ? card.dataset.planId : "",
+      name: btn.dataset.plan,
+      amount: parseInt(btn.dataset.amount, 10)
+    };
+    document.getElementById('bootcampFields').style.display =
+      selectedPlan.id === "bootcamp" ? "block" : "none";
+    renderParticipants();
+    updateTotal();
     document.getElementById('register').scrollIntoView({behavior:'smooth'});
+  }
+
+  function peopleCount(){
+    const el = document.getElementById('people');
+    return el ? Math.min(MAX_PEOPLE, Math.max(1, parseInt(el.value, 10) || 1)) : 1;
+  }
+
+  // Total the user will pay. For Bootcamp: N×price, minus a flat ₦5,000 when
+  // 2+ people register. (The server re-computes this authoritatively.)
+  function computeTotal(){
+    if(selectedPlan.id === "bootcamp"){
+      const n = peopleCount();
+      let total = n * selectedPlan.amount;
+      if(n > 1) total -= GROUP_DISCOUNT;
+      return Math.max(0, total);
+    }
+    return selectedPlan.amount;
+  }
+
+  function updateTotal(){
+    document.getElementById('planName').textContent = selectedPlan.name;
+    document.getElementById('planPrice').textContent = "₦" + computeTotal().toLocaleString();
+  }
+
+  // Render (people − 1) extra name+age blocks for a Bootcamp group.
+  function renderParticipants(){
+    const box = document.getElementById('participants');
+    if(!box) return;
+    if(selectedPlan.id !== "bootcamp"){ box.innerHTML = ""; updateTotal(); return; }
+    const n = peopleCount();
+    let html = "";
+    for(let i = 2; i <= n; i++){
+      html +=
+        '<div class="participant">' +
+          '<div class="p-head">Participant ' + i + '</div>' +
+          '<div class="row2">' +
+            '<div class="field"><label>Name</label><input class="p-name" type="text" placeholder="Full name"></div>' +
+            '<div class="field"><label>Age (13–16)</label><select class="p-age">' +
+              '<option value="13">13</option><option value="14">14</option>' +
+              '<option value="15">15</option><option value="16">16</option>' +
+            '</select></div>' +
+          '</div>' +
+        '</div>';
+    }
+    box.innerHTML = html;
+    updateTotal();
   }
 
   // ---- Render admin-managed settings (pricing + cohort) ----
@@ -483,14 +574,11 @@
     });
 
     // Keep the currently-selected plan's amount in sync with the new prices.
-    const selectedCard = document.querySelector('.price-card [data-plan="' + selectedPlan.name + '"]');
-    if(selectedCard){
-      selectedPlan.amount = parseInt(selectedCard.dataset.amount, 10) || selectedPlan.amount;
-      const pn = document.getElementById('planName');
-      const pp = document.getElementById('planPrice');
-      if(pn) pn.textContent = selectedPlan.name;
-      if(pp) pp.textContent = "₦" + selectedPlan.amount.toLocaleString();
+    const selectedBtn = document.querySelector('.price-card button[data-plan="' + selectedPlan.name + '"]');
+    if(selectedBtn){
+      selectedPlan.amount = parseInt(selectedBtn.dataset.amount, 10) || selectedPlan.amount;
     }
+    updateTotal();
   };
 
   function showMsg(text, type){
@@ -499,19 +587,18 @@
     m.className = 'msg show ' + type;
   }
 
-  // ---- Paystack ----
-  // Paystack PUBLIC key (safe to expose in the browser). Get it from
-  // dashboard.paystack.com → Settings → API Keys & Webhooks.
-  const PAYSTACK_PUBLIC_KEY = "pk_test_8e749c4a7c4d7e6bb813f09323a23a66ca14fb98";
-
-  function payWithPaystack(){
+  // ---- Registration + payment ----
+  // No payment keys live in the browser. We POST the registration to a
+  // serverless function that starts the transaction server-side (with the
+  // secret key), then redirect to the hosted checkout it returns.
+  async function submitRegistration(){
     const name  = document.getElementById('fname').value.trim();
     const email = document.getElementById('email').value.trim();
     const phone = document.getElementById('phone').value.trim();
     const track = document.getElementById('track').value;
 
     if(!name || !email || !phone){
-      showMsg("Please fill in your name, email and phone before paying.", "err");
+      showMsg("Please fill in your name, email and phone.", "err");
       return;
     }
     if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){
@@ -519,34 +606,54 @@
       return;
     }
 
-    const handler = PaystackPop.setup({
-      key: PAYSTACK_PUBLIC_KEY,
+    const payload = {
+      planId: selectedPlan.id,
+      name: name,
       email: email,
-      amount: selectedPlan.amount * 100, // Paystack expects the amount in kobo
-      currency: "NGN",
-      ref: "CWS-" + Date.now(),
-      // These details ride along with the transaction so the Paystack webhook
-      // can save the registration once it has verified the payment.
-      metadata: {
-        custom_fields: [
-          { display_name: "Full Name", variable_name: "full_name", value: name },
-          { display_name: "Phone", variable_name: "phone", value: phone },
-          { display_name: "Track", variable_name: "track", value: track },
-          { display_name: "Plan", variable_name: "plan", value: selectedPlan.name },
-          { display_name: "Cohort", variable_name: "cohort", value: String(currentCohort) }
-        ]
-      },
-      callback: function(response){
-        // The registration is saved to Firestore server-side by the Paystack
-        // webhook. Send the user to the success page, which verifies the
-        // payment with Paystack and shows a confirmation + receipt.
-        window.location.href = "/success?reference=" + encodeURIComponent(response.reference);
-      },
-      onClose: function(){
-        showMsg("Payment window closed before completing. Your seat isn't confirmed yet.", "err");
+      phone: phone,
+      track: track,
+      cohort: currentCohort
+    };
+
+    if(selectedPlan.id === "bootcamp"){
+      const people = peopleCount();
+      const participants = [{ name: name, age: parseInt(document.getElementById('age').value, 10) }];
+      let ok = true;
+      document.querySelectorAll('#participants .participant').forEach(function(block){
+        const pName = block.querySelector('.p-name').value.trim();
+        const pAge = parseInt(block.querySelector('.p-age').value, 10);
+        if(!pName) ok = false;
+        participants.push({ name: pName, age: pAge });
+      });
+      if(!ok){
+        showMsg("Please enter a name for every participant.", "err");
+        return;
       }
-    });
-    handler.openIframe();
+      payload.people = people;
+      payload.participants = participants;
+    }
+
+    const btn = document.getElementById('payBtn');
+    btn.disabled = true;
+    showMsg("Starting secure checkout…", "");
+    try {
+      const res = await fetch("/api/initialize-payment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json().catch(function(){ return {}; });
+      if(res.ok && data.authorization_url){
+        window.location.href = data.authorization_url;
+        return;
+      }
+      showMsg(data.message || "We couldn't start the payment. Please try again.", "err");
+      btn.disabled = false;
+    } catch (err){
+      console.error(err);
+      showMsg("Network error. Please check your connection and try again.", "err");
+      btn.disabled = false;
+    }
   }
 </script>
 </body>
