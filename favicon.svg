@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-label="CodeWithSammy">
+  <rect width="32" height="32" rx="7" fill="#0B0F1A"/>
+  <!-- code brackets -->
+  <path d="M11.5 10.5 L7 16 L11.5 21.5" fill="none" stroke="#5b6b86" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M20.5 10.5 L25 16 L20.5 21.5" fill="none" stroke="#5b6b86" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- lime accent dot (brand mark) -->
+  <rect x="14.5" y="14.5" width="3" height="3" rx="1" fill="#C6FF3A"/>
+</svg>

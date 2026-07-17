@@ -17,6 +17,14 @@ Paystack-verified payment webhook and a Firebase-backed admin panel.
 | `firebase.json`, `.firebaserc` | Firebase config (used only to deploy the Firestore rules). |
 | `netlify.toml` | Netlify build + routing (`/admin`, `/success`, `/api/*`). |
 | `package.json` | Declares `firebase-admin` for the Netlify functions. |
+| `robots.txt`, `sitemap.xml`, `llms.txt` | SEO / AI-crawler files. |
+| `site.webmanifest`, `favicon.svg`, `favicon-*.png`, `apple-touch-icon.png`, `icon-*.png` | Favicons + PWA manifest. |
+| `og-image.png` | Social share image (referenced by Open Graph / Twitter tags). |
+
+> **SEO domain:** the SEO tags and files use `https://codewithsammy.com` as the
+> production domain. If yours differs, find/replace it across `index.html`,
+> `robots.txt`, `sitemap.xml`, and `llms.txt`. After deploying, submit
+> `sitemap.xml` in Google Search Console.
 
 ## How it works
 

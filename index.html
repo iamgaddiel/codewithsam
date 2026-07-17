@@ -3,7 +3,114 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CodeWithSammy — Learn to build real software</title>
+<title>CodeWithSammy — Coding Bootcamp for Students &amp; Teens | Build Real Software</title>
+
+<!-- ============================ SEO ============================ -->
+<!-- Production domain — find/replace https://codewithsammy.com if yours differs. -->
+<meta name="description" content="CodeWithSammy is a hands-on coding bootcamp for students and teens. Learn web development, full-stack engineering, and Python by building real, working projects with live mentorship. Cohort-based, project-first, job-ready.">
+<meta name="keywords" content="coding bootcamp, learn to code, web development course, Python course, full-stack development bootcamp, coding for teens, coding for students, kids coding Nigeria, online coding classes, programming course, learn programming">
+<meta name="author" content="CodeWithSammy">
+<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">
+<meta name="theme-color" content="#0B0F1A">
+<link rel="canonical" href="https://codewithsammy.com/">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
+<link rel="sitemap" type="application/xml" href="/sitemap.xml">
+
+<!-- Open Graph (Facebook, LinkedIn, WhatsApp…) -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="CodeWithSammy">
+<meta property="og:title" content="CodeWithSammy — Coding Bootcamp for Students &amp; Teens">
+<meta property="og:description" content="Learn to build real software with live mentorship. Web, full-stack &amp; Python tracks — project-first, cohort-based, job-ready.">
+<meta property="og:url" content="https://codewithsammy.com/">
+<meta property="og:image" content="https://codewithsammy.com/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="CodeWithSammy — learn to build real software">
+<meta property="og:locale" content="en_US">
+
+<!-- Twitter / X -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="CodeWithSammy — Coding Bootcamp for Students &amp; Teens">
+<meta name="twitter:description" content="Learn to build real software with live mentorship. Web, full-stack &amp; Python tracks — project-first, cohort-based, job-ready.">
+<meta name="twitter:image" content="https://codewithsammy.com/og-image.png">
+<meta name="twitter:image:alt" content="CodeWithSammy — learn to build real software">
+
+<!-- Structured data -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "EducationalOrganization",
+      "@id": "https://codewithsammy.com/#organization",
+      "name": "CodeWithSammy",
+      "alternateName": "Code With Sammy",
+      "url": "https://codewithsammy.com/",
+      "logo": "https://codewithsammy.com/og-image.png",
+      "image": "https://codewithsammy.com/og-image.png",
+      "description": "A hands-on coding bootcamp for students and teens. Learn web development, full-stack engineering, and Python by building real projects with live mentorship.",
+      "email": "hello@codewithsammy.com",
+      "address": { "@type": "PostalAddress", "addressCountry": "NG" },
+      "areaServed": "NG",
+      "sameAs": [
+        "https://twitter.com/codewithsammy",
+        "https://instagram.com/codewithsammy",
+        "https://www.linkedin.com/company/codewithsammy"
+      ]
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://codewithsammy.com/#website",
+      "url": "https://codewithsammy.com/",
+      "name": "CodeWithSammy",
+      "description": "Hands-on coding bootcamp for students and teens.",
+      "publisher": { "@id": "https://codewithsammy.com/#organization" },
+      "inLanguage": "en"
+    },
+    {
+      "@type": "Course",
+      "name": "Web Foundations",
+      "description": "From zero to your first live website — HTML, CSS, responsive design, JavaScript fundamentals, Git, and deploying to the web.",
+      "provider": { "@id": "https://codewithsammy.com/#organization" },
+      "inLanguage": "en",
+      "hasCourseInstance": {
+        "@type": "CourseInstance",
+        "courseMode": "online",
+        "courseWorkload": "PT12W"
+      }
+    },
+    {
+      "@type": "Course",
+      "name": "Full-Stack Dev",
+      "description": "Build complete apps with a front end, back end, and database — React, Node, APIs, auth, databases, and deployment.",
+      "provider": { "@id": "https://codewithsammy.com/#organization" },
+      "inLanguage": "en",
+      "hasCourseInstance": {
+        "@type": "CourseInstance",
+        "courseMode": "online",
+        "courseWorkload": "PT12W"
+      }
+    },
+    {
+      "@type": "Course",
+      "name": "Python & Data",
+      "description": "Program with Python and turn raw data into insight — Python core, automation, Pandas, data analysis, and an intro to machine learning.",
+      "provider": { "@id": "https://codewithsammy.com/#organization" },
+      "inLanguage": "en",
+      "hasCourseInstance": {
+        "@type": "CourseInstance",
+        "courseMode": "online",
+        "courseWorkload": "PT12W"
+      }
+    }
+  ]
+}
+</script>
+<!-- ========================== /SEO ============================ -->
 
 <!-- Firebase (Analytics) -->
 <!--
@@ -386,9 +493,9 @@
 
       <div class="field"><label for="fname">Full name</label><input id="fname" type="text" placeholder="Ada Lovelace"></div>
       <div class="field"><label for="email">Email address</label><input id="email" type="email" placeholder="ada@email.com"></div>
-      <div class="row2">
+      <div class="row2" id="regRow2">
         <div class="field"><label for="phone">Phone</label><input id="phone" type="tel" placeholder="0801 234 5678"></div>
-        <div class="field"><label for="track">Track</label>
+        <div class="field" id="trackField"><label for="track">Track</label>
           <select id="track">
             <option>Web Foundations</option>
             <option>Full-Stack Dev</option>
@@ -468,8 +575,13 @@
       name: btn.dataset.plan,
       amount: parseInt(btn.dataset.amount, 10)
     };
-    document.getElementById('bootcampFields').style.display =
-      selectedPlan.id === "bootcamp" ? "block" : "none";
+    const isBootcamp = selectedPlan.id === "bootcamp";
+    document.getElementById('bootcampFields').style.display = isBootcamp ? "block" : "none";
+    // Bootcamp isn't tied to a track — hide the Track field and let Phone fill the row.
+    const trackField = document.getElementById('trackField');
+    const regRow2 = document.getElementById('regRow2');
+    if(trackField) trackField.style.display = isBootcamp ? "none" : "";
+    if(regRow2) regRow2.style.gridTemplateColumns = isBootcamp ? "1fr" : "";
     renderParticipants();
     updateTotal();
     document.getElementById('register').scrollIntoView({behavior:'smooth'});
@@ -611,7 +723,8 @@
       name: name,
       email: email,
       phone: phone,
-      track: track,
+      // Bootcamp isn't track-based, so no track is sent for it.
+      track: selectedPlan.id === "bootcamp" ? "" : track,
       cohort: currentCohort
     };
 

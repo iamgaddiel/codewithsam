@@ -1,0 +1,43 @@
+# CodeWithSammy
+
+> CodeWithSammy is a hands-on coding bootcamp for students and teens. Learners build real, working projects with live mentorship from engineers — project-first, cohort-based, and job-ready. Pricing is in Nigerian Naira (₦) and payments are processed securely.
+
+## About
+
+CodeWithSammy teaches people to code by building things that actually run, not by watching tutorials. Each track runs 12 weeks with weekly live sessions, code reviews, and a capstone project for the learner's portfolio. Cohorts are small so every student gets attention and feedback. There is also a dedicated Bootcamp track for teens aged 13–16.
+
+Key facts:
+- Format: online, cohort-based, 12 weeks per track
+- Audience: students, career-changers, and teens (13–16 for the Bootcamp track)
+- Approach: project-first learning, live mentorship, weekly code reviews, career support
+- Region: Nigeria (pricing in ₦ / NGN)
+
+## Tracks
+
+- Web Foundations: From zero to your first live website — HTML, CSS, responsive design, JavaScript fundamentals, Git, and deploying to the web. Capstone: a personal portfolio.
+- Full-Stack Dev: Build complete apps with a front end, back end, and database — React and modern UI, Node, APIs and auth, databases, and deployment. Capstone: a full web app.
+- Python & Data: Program with Python and turn raw data into insight — Python core and automation, Pandas and data analysis, and an intro to machine learning. Capstone: a data dashboard.
+
+## Plans
+
+- Bootcamp — ₦30,000 per cohort. A beginner-friendly track for teens aged 13–16; hands-on project-based lessons in small mentor-guided groups. Siblings or friends can register together (up to 3 people), and groups of 2+ get a flat ₦5,000 off.
+- Student (most popular) — ₦45,000 per cohort. Everything needed to complete one full track: 12 weeks of live classes, weekly code reviews, all course materials and recordings, and a certificate of completion.
+- Pro — ₦75,000 per cohort. The full track plus 1-on-1 mentor sessions, portfolio and GitHub review, and interview prep with job referrals.
+
+## How enrollment works
+
+1. Choose a plan on the pricing section.
+2. Fill in the registration form (name, email, phone, and track — the Bootcamp track instead asks for participant age and group size).
+3. Complete a secure payment; a seat is confirmed once payment succeeds.
+4. Receive a welcome kit and the cohort schedule by email.
+
+## Links
+
+- [Homepage](https://codewithsammy.com/)
+- [Pricing](https://codewithsammy.com/#pricing)
+- [Tracks](https://codewithsammy.com/#tracks)
+- [Register](https://codewithsammy.com/#register)
+
+## Contact
+
+- Email: hello@codewithsammy.com
