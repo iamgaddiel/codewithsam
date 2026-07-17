@@ -36,3 +36,9 @@
   from = "/success"
   to = "/success.html"
   status = 200
+
+# Legacy /favicon.ico requests → the PNG icon.
+[[redirects]]
+  from = "/favicon.ico"
+  to = "/favicon-32x32.png"
+  status = 200
