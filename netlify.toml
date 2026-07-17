@@ -13,8 +13,26 @@
   to = "/.netlify/functions/paystack-webhook"
   status = 200
 
+# Starts a payment transaction server-side (registration form posts here).
+[[redirects]]
+  from = "/api/initialize-payment"
+  to = "/.netlify/functions/initialize-payment"
+  status = 200
+
+# Payment verification used by the success page.
+[[redirects]]
+  from = "/api/verify-payment"
+  to = "/.netlify/functions/verify-payment"
+  status = 200
+
 # Clean URL for the admin panel.
 [[redirects]]
   from = "/admin"
   to = "/admin.html"
+  status = 200
+
+# Clean URL for the post-payment success page.
+[[redirects]]
+  from = "/success"
+  to = "/success.html"
   status = 200
