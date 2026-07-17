@@ -150,6 +150,9 @@
     }
   } catch (err) {
     console.warn("Could not load site config:", err);
+  } finally {
+    // Data is in (or failed) — dismiss the loading screen.
+    if (typeof window.hideLoader === "function") window.hideLoader();
   }
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -317,10 +320,56 @@
     .nav-links{display:none}
     .hero-stats{gap:22px}
   }
+  /* Loading screen */
+  #loader{position:fixed;inset:0;z-index:300;background:var(--ink);display:flex;align-items:center;justify-content:center;opacity:1;transition:opacity .45s ease}
+  #loader.hidden{opacity:0;pointer-events:none}
+  #loader .loader-inner{display:flex;flex-direction:column;align-items:center;gap:22px}
+  #loader .spinner{width:42px;height:42px;border:3px solid var(--line);border-top-color:var(--lime);border-radius:50%;animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* Flyer ad modal */
+  .ad-overlay{position:fixed;inset:0;z-index:250;background:rgba(6,9,16,.72);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .3s ease}
+  .ad-overlay.show{opacity:1;pointer-events:auto}
+  .ad-card{position:relative;width:100%;max-width:440px;background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:32px 28px;text-align:center;overflow:hidden;transform:translateY(16px) scale(.98);transition:transform .3s ease}
+  .ad-overlay.show .ad-card{transform:none}
+  .ad-card .ad-glow{position:absolute;width:300px;height:300px;border-radius:50%;background:rgba(198,255,58,.16);filter:blur(70px);top:-140px;left:-80px;pointer-events:none}
+  .ad-close{position:absolute;top:12px;right:14px;background:transparent;border:none;color:var(--mute);font-size:26px;line-height:1;cursor:pointer;padding:4px;z-index:1}
+  .ad-close:hover{color:var(--paper)}
+  .ad-badge{position:relative;display:inline-flex;align-items:center;gap:8px;font-family:'JetBrains Mono';font-size:12px;color:var(--lime);border:1px solid var(--line);border-radius:100px;padding:5px 12px;margin-bottom:16px}
+  .ad-card h3{position:relative;font-size:25px;margin-bottom:10px}
+  .ad-card p{position:relative;color:var(--mute);font-size:15px;margin-bottom:8px}
+  .ad-offer{position:relative;color:var(--paper)!important;font-weight:600;background:var(--ink);border:1px dashed var(--line);border-radius:10px;padding:10px 12px;margin:14px 0 20px!important;font-size:14.5px!important}
+  .ad-offer b{color:var(--lime);font-family:'JetBrains Mono'}
+  .ad-card .btn-primary{position:relative;width:100%;padding:13px}
+  .ad-later{position:relative;display:block;width:100%;background:none;border:none;color:var(--mute);font-size:13.5px;margin-top:12px;cursor:pointer}
+  .ad-later:hover{color:var(--paper)}
+
   @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
 <body>
+
+<!-- LOADING SCREEN -->
+<div id="loader">
+  <div class="loader-inner">
+    <div class="logo"><span class="dot"></span><span>CodeWith<span class="accent">Sammy</span></span></div>
+    <div class="spinner"></div>
+  </div>
+</div>
+
+<!-- FLYER AD MODAL -->
+<div class="ad-overlay" id="adModal">
+  <div class="ad-card" role="dialog" aria-modal="true" aria-labelledby="adTitle">
+    <div class="ad-glow"></div>
+    <button class="ad-close" id="adClose" aria-label="Close">&times;</button>
+    <div class="ad-badge"><span class="pulse"></span>Enrolling now</div>
+    <h3 id="adTitle">The new cohort is open 🚀</h3>
+    <p>Learn to build real software with live mentorship — project-first, and job-ready. Seats are limited.</p>
+    <p class="ad-offer">Bring a friend to <b>Bootcamp</b> and save <b>₦5,000</b> on your group.</p>
+    <button class="btn btn-primary" id="adCta">See plans &amp; register →</button>
+    <button class="ad-later" id="adLater">Maybe later</button>
+  </div>
+</div>
 
 <!-- NAV -->
 <nav>
@@ -768,6 +817,52 @@
       btn.disabled = false;
     }
   }
+
+  // ---- Loading screen ----
+  // Hidden when site config loads (see the Firebase module) or, as a safety
+  // net, shortly after the page finishes loading — so it never gets stuck.
+  // A small minimum display time avoids a jarring flash when data is instant.
+  const LOADER_MIN_MS = 600;
+  const loaderStart = Date.now();
+  let loaderHidden = false;
+  window.hideLoader = function(){
+    if(loaderHidden) return;
+    loaderHidden = true;
+    const wait = Math.max(0, LOADER_MIN_MS - (Date.now() - loaderStart));
+    setTimeout(function(){
+      const el = document.getElementById('loader');
+      if(el) el.classList.add('hidden');
+    }, wait);
+  };
+  window.addEventListener('load', function(){ setTimeout(window.hideLoader, 3500); });
+
+  // ---- Flyer ad modal (pops up 3s after load, once per session) ----
+  (function(){
+    const modal = document.getElementById('adModal');
+    if(!modal) return;
+    let shown = false;
+
+    function openAd(){
+      if(shown || sessionStorage.getItem('cws_ad_seen')) return;
+      shown = true;
+      modal.classList.add('show');
+    }
+    function closeAd(){
+      modal.classList.remove('show');
+      try { sessionStorage.setItem('cws_ad_seen', '1'); } catch(e){}
+    }
+
+    document.getElementById('adClose').addEventListener('click', closeAd);
+    document.getElementById('adLater').addEventListener('click', closeAd);
+    document.getElementById('adCta').addEventListener('click', function(){
+      closeAd();
+      document.getElementById('pricing').scrollIntoView({ behavior:'smooth' });
+    });
+    modal.addEventListener('click', function(e){ if(e.target === modal) closeAd(); });
+    document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeAd(); });
+
+    window.addEventListener('load', function(){ setTimeout(openAd, 3000); });
+  })();
 </script>
 </body>
 </html>

@@ -212,9 +212,15 @@
     }
 
     if(data && data.status === "success"){
-      // Save the registration before showing the confirmation (best-effort).
-      const fs = await initFirestore();
-      await persistRegistration(fs, data);
+      // verify-payment already tries to save server-side (Admin SDK). Only fall
+      // back to a client write if that didn't happen (e.g. no service account).
+      if(data.saved){
+        console.info("Registration saved server-side.");
+      } else {
+        console.warn("Server-side save skipped/failed:", data.saveError || "unknown");
+        const fs = await initFirestore();
+        await persistRegistration(fs, data);
+      }
       rows("receipt", [
         ["Reference", data.reference, ""],
         ["Amount paid", money(data.amount, data.currency), "amount"],
