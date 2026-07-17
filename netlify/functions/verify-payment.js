@@ -51,6 +51,10 @@ function readMetadata(rawMeta) {
   (meta.custom_fields || []).forEach((field) => {
     if (field && field.variable_name) out[field.variable_name] = field.value;
   });
+  // Bootcamp group details live at the top level of metadata, not custom_fields.
+  out.plan_id = meta.plan_id || "";
+  out.people = meta.people;
+  out.participants = Array.isArray(meta.participants) ? meta.participants : null;
   return out;
 }
 
@@ -89,8 +93,13 @@ exports.handler = async (event) => {
       currency: tx.currency || "NGN",
       email: (tx.customer && tx.customer.email) || "",
       name: meta.full_name || "",
+      phone: meta.phone || "",
+      track: meta.track || "",
       plan: meta.plan || "",
+      planId: meta.plan_id || "",
       cohort: meta.cohort || "",
+      people: meta.people != null ? Number(meta.people) : 1,
+      participants: meta.participants || null,
     });
   } catch (err) {
     console.error("verify-payment failed:", err);

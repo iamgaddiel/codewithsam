@@ -27,9 +27,21 @@ service cloud.firestore {
     }
 
     match /registrations/{regId} {
-      // Registrations are created only by the Netlify Paystack webhook
-      // (Admin SDK, which bypasses these rules). Clients get no write access.
-      allow read, update, delete: if isAdmin();
+      // Only the admin can read or delete registrations.
+      allow read, delete: if isAdmin();
+
+      // TEMPORARY (webhook bypass): the confirmation page (success.html) writes
+      // the paid registration client-side after the payment is verified. The
+      // document id must equal the payment reference, and the record must look
+      // like a paid registration. NOTE: this is spoofable by a determined user
+      // (a browser can write a fake "paid" record) — remove it and rely on the
+      // webhook once the webhook is working.
+      allow create, update: if isAdmin() || (
+        request.resource.data.status == 'paid'
+        && request.resource.data.paymentRef == regId
+        && request.resource.data.email is string
+        && request.resource.data.amount is number
+      );
     }
 
     // Site settings (pricing table, benefits, current cohort + dates).

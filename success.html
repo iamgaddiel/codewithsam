@@ -101,71 +101,132 @@
   </div>
 </div>
 
-<script>
-  (function(){
-    var params = new URLSearchParams(window.location.search);
-    // The checkout redirect provides "reference" (and sometimes "trxref").
-    var reference = params.get("reference") || params.get("trxref");
+<script type="module">
+  const firebaseConfig = {
+    apiKey: "AIzaSyDQKqc48h9X-_ic1BEA6tj2QVtzndZoiuQ",
+    authDomain: "codewithsammy-6cf08.firebaseapp.com",
+    projectId: "codewithsammy-6cf08",
+    storageBucket: "codewithsammy-6cf08.firebasestorage.app",
+    messagingSenderId: "316035486653",
+    appId: "1:316035486653:web:50bc0a5110096eb39ff8d4",
+    measurementId: "G-SD9WJW33HC"
+  };
 
-    var loading = document.getElementById("loadingView");
-    var successView = document.getElementById("successView");
-    var failView = document.getElementById("failView");
+  // Load Firebase dynamically so that, if the CDN is blocked or slow, the user
+  // still sees their confirmation — only the (best-effort) DB write is skipped.
+  async function initFirestore(){
+    try {
+      const { initializeApp } = await import("https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js");
+      const { getFirestore, doc, setDoc, serverTimestamp } =
+        await import("https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js");
+      const db = getFirestore(initializeApp(firebaseConfig));
+      return { db, doc, setDoc, serverTimestamp };
+    } catch (err) {
+      console.warn("Firebase unavailable:", err);
+      return null;
+    }
+  }
 
-    function show(el){
-      loading.classList.add("hidden");
-      successView.classList.add("hidden");
-      failView.classList.add("hidden");
-      el.classList.remove("hidden");
-    }
-    function money(amount, currency){
-      var sign = currency === "NGN" || !currency ? "₦" : (currency + " ");
-      return sign + Number(amount || 0).toLocaleString();
-    }
-    function esc(v){
-      return String(v == null ? "" : v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
-    }
-    function rows(target, list){
-      document.getElementById(target).innerHTML = list
-        .filter(function(r){ return r[1]; })
-        .map(function(r){
-          return "<div class='row'><span class='k'>" + r[0] + "</span><span class='v " + (r[2]||"") + "'>" + esc(r[1]) + "</span></div>";
-        }).join("");
-    }
-    function showFail(title, msg){
-      if(title) document.getElementById("failTitle").textContent = title;
-      if(msg) document.getElementById("failMsg").textContent = msg;
-      rows("failReceipt", [["Reference", reference]]);
-      show(failView);
-    }
+  const params = new URLSearchParams(window.location.search);
+  // The checkout redirect provides "reference" (and sometimes "trxref").
+  const reference = params.get("reference") || params.get("trxref");
 
+  const loading = document.getElementById("loadingView");
+  const successView = document.getElementById("successView");
+  const failView = document.getElementById("failView");
+
+  function show(el){
+    loading.classList.add("hidden");
+    successView.classList.add("hidden");
+    failView.classList.add("hidden");
+    el.classList.remove("hidden");
+  }
+  function money(amount, currency){
+    const sign = currency === "NGN" || !currency ? "₦" : (currency + " ");
+    return sign + Number(amount || 0).toLocaleString();
+  }
+  function esc(v){
+    return String(v == null ? "" : v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  }
+  function rows(target, list){
+    document.getElementById(target).innerHTML = list
+      .filter(function(r){ return r[1]; })
+      .map(function(r){
+        return "<div class='row'><span class='k'>" + r[0] + "</span><span class='v " + (r[2]||"") + "'>" + esc(r[1]) + "</span></div>";
+      }).join("");
+  }
+  function showFail(title, msg){
+    if(title) document.getElementById("failTitle").textContent = title;
+    if(msg) document.getElementById("failMsg").textContent = msg;
+    rows("failReceipt", [["Reference", reference]]);
+    show(failView);
+  }
+
+  // TEMPORARY (webhook bypass): save the verified registration to Firestore
+  // straight from this page. Keyed by the payment reference, so it merges with
+  // the webhook's write if that ever runs (no duplicates). Best-effort — a
+  // failure here still shows the user their confirmation.
+  async function persistRegistration(fs, data){
+    if(!fs) return;
+    try {
+      await fs.setDoc(fs.doc(fs.db, "registrations", data.reference), {
+        fullName: data.name || "",
+        email: data.email || "",
+        phone: data.phone || "",
+        track: data.track || "",
+        plan: data.plan || "",
+        planId: data.planId || "",
+        cohort: data.cohort ? Number(data.cohort) : null,
+        people: data.people ? Number(data.people) : 1,
+        participants: data.participants || null,
+        amount: data.amount || 0,
+        currency: data.currency || "NGN",
+        status: "paid",
+        verified: true,
+        paymentRef: data.reference,
+        source: "confirmation-page",
+        paidAt: fs.serverTimestamp(),
+        createdAt: fs.serverTimestamp()
+      }, { merge: true });
+    } catch (err) {
+      console.warn("Could not persist registration:", err);
+    }
+  }
+
+  async function run(){
     if(!reference){
       showFail("No payment reference", "We didn't get a payment reference in the link. If you just paid, check your email for confirmation.");
       return;
     }
+    let data;
+    try {
+      const res = await fetch("/api/verify-payment?reference=" + encodeURIComponent(reference));
+      data = await res.json();
+    } catch (err) {
+      showFail("Couldn't reach our servers", "We couldn't verify the payment right now. If you were charged, your confirmation email will still arrive — keep your reference handy.");
+      return;
+    }
 
-    fetch("/api/verify-payment?reference=" + encodeURIComponent(reference))
-      .then(function(res){ return res.json(); })
-      .then(function(data){
-        if(data && data.status === "success"){
-          rows("receipt", [
-            ["Reference", data.reference, ""],
-            ["Amount paid", money(data.amount, data.currency), "amount"],
-            ["Plan", data.plan, ""],
-            ["Cohort", data.cohort ? ("Cohort " + data.cohort) : "", ""],
-            ["Email", data.email, ""]
-          ]);
-          show(successView);
-        } else if(data && (data.status === "abandoned" || data.status === "failed" || data.status === "pending")){
-          showFail("Payment not completed", "This payment shows as \"" + data.status + "\". If you were charged, contact us with your reference.");
-        } else {
-          showFail(null, null);
-        }
-      })
-      .catch(function(){
-        // Verification endpoint unreachable — still acknowledge the reference.
-        showFail("Couldn't reach our servers", "We couldn't verify the payment right now. If you were charged, your confirmation email will still arrive — keep your reference handy.");
-      });
-  })();
+    if(data && data.status === "success"){
+      // Save the registration before showing the confirmation (best-effort).
+      const fs = await initFirestore();
+      await persistRegistration(fs, data);
+      rows("receipt", [
+        ["Reference", data.reference, ""],
+        ["Amount paid", money(data.amount, data.currency), "amount"],
+        ["Plan", data.plan, ""],
+        ["Cohort", data.cohort ? ("Cohort " + data.cohort) : "", ""],
+        ["Email", data.email, ""]
+      ]);
+      show(successView);
+    } else if(data && (data.status === "abandoned" || data.status === "failed" || data.status === "pending")){
+      showFail("Payment not completed", "This payment shows as \"" + data.status + "\". If you were charged, contact us with your reference.");
+    } else {
+      showFail(null, null);
+    }
+  }
+
+  run();
 </script>
 </body>
 </html>

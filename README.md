@@ -50,7 +50,8 @@ impossible.
 
 ### Data model
 
-**`registrations/{paystackReference}`** — written by the webhook:
+**`registrations/{paystackReference}`** — written by the webhook (and,
+temporarily, by the confirmation page — see "Temporary webhook bypass" below):
 
 | Field | Type | Notes |
 |-------|------|-------|
@@ -159,6 +160,21 @@ npm install
 netlify dev
 ```
 
+## Temporary webhook bypass
+
+While the Paystack webhook is being sorted out, the confirmation page
+(`success.html`) also saves the registration itself: it calls `verify-payment`
+(which confirms the payment with Paystack using the secret key), then writes the
+record to Firestore with the Firebase Web SDK, keyed by the payment reference.
+Because the id is the reference, this merges with the webhook's write if that
+ever runs — no duplicates.
+
+To support this, `firestore.rules` temporarily allows a client to create/update
+a `registrations/{ref}` doc when `paymentRef == ref` and it looks paid. **This is
+spoofable** (a browser could write a fake "paid" record), so once the webhook is
+reliable, remove that `allow create, update` block and delete the write in
+`success.html` — the webhook (Admin SDK) is the trustworthy path.
+
 ## Security notes
 
 - **Never commit secrets.** `PAYSTACK_SECRET_KEY` and `FIREBASE_SERVICE_ACCOUNT`
@@ -166,5 +182,6 @@ netlify dev
   `index.html` / `admin.html` is public by design and safe to expose.
 - **Rotate a leaked service-account key** immediately: Firebase console →
   Project settings → Service accounts → delete the key and generate a new one.
-- Payment records are only trusted because the webhook verifies each
-  transaction with Paystack server-side; the browser cannot create them.
+- The webhook path is trustworthy because it verifies each transaction with
+  Paystack server-side. The temporary confirmation-page write is verified too,
+  but relies on a client-writable rule — see above.
