@@ -170,18 +170,22 @@ netlify dev
 
 ## Temporary webhook bypass
 
-While the Paystack webhook is being sorted out, the confirmation page
-(`success.html`) also saves the registration itself: it calls `verify-payment`
-(which confirms the payment with Paystack using the secret key), then writes the
-record to Firestore with the Firebase Web SDK, keyed by the payment reference.
-Because the id is the reference, this merges with the webhook's write if that
-ever runs — no duplicates.
+While the Paystack webhook is being sorted out, the registration is also saved
+when the user lands on the confirmation page (`/success`):
 
-To support this, `firestore.rules` temporarily allows a client to create/update
-a `registrations/{ref}` doc when `paymentRef == ref` and it looks paid. **This is
-spoofable** (a browser could write a fake "paid" record), so once the webhook is
-reliable, remove that `allow create, update` block and delete the write in
-`success.html` — the webhook (Admin SDK) is the trustworthy path.
+1. **Server-side (primary):** `verify-payment` confirms the payment with Paystack
+   and then writes the record to Firestore via the **Admin SDK** (bypasses rules).
+   This is the reliable path and needs `FIREBASE_SERVICE_ACCOUNT` set in Netlify.
+   It returns `saved: true/false` (+ `saveError`) so you can see what happened.
+2. **Client-side (fallback):** if the server didn't save, `success.html` writes
+   the record with the Firebase Web SDK, which relies on a temporary rule in
+   `firestore.rules` allowing a client to create a `registrations/{ref}` doc when
+   `paymentRef == ref` and it looks paid. **This is spoofable.**
+
+Both are keyed by the payment reference, so they merge with the webhook's write
+if it ever runs — no duplicates. Once the webhook (or the server-side save) is
+confirmed reliable, remove the `allow create, update` block from
+`firestore.rules` and the client write in `success.html`.
 
 ## Security notes
 
