@@ -70,11 +70,14 @@
 
   /* Main column */
   .main{margin-left:240px;min-height:100vh;transition:margin-left .25s ease}
+  /* The bar itself is full-bleed (so its border spans the window) while its
+     contents sit on the same centred column as .content below it. */
   .topbar{
-    position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:14px;height:60px;
+    position:sticky;top:0;z-index:20;height:60px;
     padding:0 18px;border-bottom:1px solid var(--line);
     background:rgba(11,15,26,.9);backdrop-filter:blur(10px);
   }
+  .topbar-inner{display:flex;align-items:center;gap:14px;height:100%;max-width:1000px;margin:0 auto}
   .hamburger{
     display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;
     background:transparent;border:1px solid var(--line);border-radius:10px;color:var(--paper);
@@ -82,7 +85,7 @@
   }
   .hamburger:hover{border-color:var(--mute)}
   #pageTitle{font-family:'Space Grotesk';font-weight:600;font-size:17px}
-  .content{padding:22px 18px 60px;max-width:1000px}
+  .content{padding:22px 18px 60px;max-width:1000px;margin:0 auto}
 
   section.panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:22px;margin-bottom:22px;scroll-margin-top:76px}
   section.panel > h2{font-size:20px;margin-bottom:4px}
@@ -175,6 +178,8 @@
     background-size:200% 100%;animation:sk-shimmer 1.4s ease-in-out infinite;
     pointer-events:none;
   }
+  /* color:transparent doesn't reach the date picker glyph — hide it explicitly. */
+  .is-loading input::-webkit-calendar-picker-indicator{opacity:0}
   .is-loading label{opacity:.45}
   @media(prefers-reduced-motion:reduce){.sk,.is-loading input,.is-loading textarea{animation:none}}
 
@@ -196,7 +201,8 @@
     body.nav-open .sidebar{transform:translateX(0)}
     body.nav-open .overlay{display:block}
     .grid2{grid-template-columns:1fr}
-    .content{padding:18px 14px 50px}
+    .content{padding:18px 14px 50px;margin:0 auto}
+    .topbar{padding:0 14px}
     section.panel{padding:18px}
   }
 </style>
@@ -243,8 +249,10 @@
   <!-- Main column -->
   <div class="main">
     <header class="topbar">
-      <button class="hamburger" id="navToggle" aria-label="Toggle navigation" aria-expanded="false">☰</button>
-      <span id="pageTitle">Paid students</span>
+      <div class="topbar-inner">
+        <button class="hamburger" id="navToggle" aria-label="Toggle navigation" aria-expanded="false">☰</button>
+        <span id="pageTitle">Paid students</span>
+      </div>
     </header>
 
     <div class="content">
