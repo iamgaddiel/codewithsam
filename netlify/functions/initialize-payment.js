@@ -48,7 +48,11 @@ async function getPlan(planId) {
       const plans = (snap.data() || {}).plans || [];
       const found = plans.find((p) => p.id === planId);
       if (found && typeof found.amount === "number") {
-        return { name: found.name || planId, amount: found.amount };
+        return {
+          name: found.name || planId,
+          amount: found.amount,
+          comingSoon: found.comingSoon === true,
+        };
       }
     }
   } catch (err) {
@@ -124,6 +128,11 @@ exports.handler = async (event) => {
   const plan = await getPlan(planId);
   if (!plan) {
     return json(400, { message: "Unknown plan selected." });
+  }
+  // The card is blurred and its button disabled in the browser, but that is
+  // trivially bypassed — this is the check that actually closes the plan.
+  if (plan.comingSoon) {
+    return json(400, { message: "That plan isn't open for registration yet." });
   }
 
   // ---- Compute the authoritative amount ----

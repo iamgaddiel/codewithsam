@@ -269,6 +269,21 @@
   .price-card li .tick{color:var(--lime);font-weight:700}
   .price-card .btn{width:100%;padding:13px}
 
+  /* "Coming soon" plan — admin toggle blurs the card and locks the button. */
+  .price-card.coming-soon{overflow:hidden}
+  .price-card.coming-soon > *:not(.cs-overlay){filter:blur(5px);opacity:.5;pointer-events:none;user-select:none}
+  /* The badge overhangs the card edge, so overflow:hidden would slice it. */
+  .price-card.coming-soon .badge{display:none}
+  .cs-overlay{
+    position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:10px;text-align:center;padding:24px;
+  }
+  .cs-overlay .cs-tag{
+    font-family:'JetBrains Mono';font-size:12px;letter-spacing:.06em;color:var(--ink);
+    background:var(--lime);border-radius:100px;padding:7px 16px;font-weight:600;
+  }
+  .cs-overlay .cs-note{color:var(--paper);font-size:14.5px;max-width:230px}
+
   /* REGISTER / FORM */
   #register{background:radial-gradient(circle at 70% 0%,rgba(122,92,255,.14),transparent 55%)}
   .reg-grid{display:grid;grid-template-columns:.9fr 1.1fr;gap:56px;align-items:center}
@@ -638,8 +653,11 @@
   // student paid for. Updated from the admin-managed site config below.
   let currentCohort = 7;
 
-  function selectPlan(btn){
+  // `silent` re-points the selection without scrolling — used when config load
+  // closes the plan that was selected by default.
+  function selectPlan(btn, silent){
     const card = btn.closest('.price-card');
+    if(card && card.classList.contains('coming-soon')) return;
     selectedPlan = {
       id: card ? card.dataset.planId : "",
       name: btn.dataset.plan,
@@ -654,7 +672,7 @@
     if(regRow2) regRow2.style.gridTemplateColumns = isBootcamp ? "1fr" : "";
     renderParticipants();
     updateTotal();
-    document.getElementById('register').scrollIntoView({behavior:'smooth'});
+    if(!silent) document.getElementById('register').scrollIntoView({behavior:'smooth'});
   }
 
   function peopleCount(){
@@ -759,7 +777,23 @@
           }).join('');
         }
       }
+
+      setComingSoon(card, plan.comingSoon === true);
     });
+
+    // Tracks (titles, blurbs and bullets) are admin-managed too.
+    if(Array.isArray(cfg.tracks) && cfg.tracks.length){
+      renderTracks(cfg.tracks);
+    }
+
+    // If the plan that's currently selected just became "coming soon", move the
+    // selection to the first plan still open, so the form can't submit a
+    // closed plan.
+    const selectedCard = document.querySelector('.price-card[data-plan-id="' + selectedPlan.id + '"]');
+    if(selectedCard && selectedCard.classList.contains('coming-soon')){
+      const open = document.querySelector('.price-card:not(.coming-soon) button[data-plan]');
+      if(open) selectPlan(open, true);
+    }
 
     // Keep the currently-selected plan's amount in sync with the new prices.
     const selectedBtn = document.querySelector('.price-card button[data-plan="' + selectedPlan.name + '"]');
@@ -768,6 +802,75 @@
     }
     updateTotal();
   };
+
+  // Blur a price card behind a "Coming soon" overlay, or restore it.
+  function setComingSoon(card, on){
+    const existing = card.querySelector('.cs-overlay');
+    const btn = card.querySelector('button[data-plan]');
+
+    if(!on){
+      card.classList.remove('coming-soon');
+      if(existing) existing.remove();
+      if(btn) btn.disabled = false;
+      return;
+    }
+
+    card.classList.add('coming-soon');
+    if(btn) btn.disabled = true;
+    if(!existing){
+      const overlay = document.createElement('div');
+      overlay.className = 'cs-overlay';
+      overlay.innerHTML = '<span class="cs-tag">COMING SOON</span>' +
+        '<p class="cs-note">This plan isn\'t open for registration yet.</p>';
+      card.appendChild(overlay);
+    }
+  }
+
+  // Rebuild the tracks grid (and the Track dropdown) from admin-managed config.
+  function renderTracks(tracks){
+    const grid = document.querySelector('.tracks');
+    const select = document.getElementById('track');
+    if(!grid) return;
+
+    grid.innerHTML = '';
+    tracks.forEach(function(t, i){
+      const el = document.createElement('div');
+      el.className = 'track';
+
+      const num = document.createElement('div');
+      num.className = 'num';
+      num.textContent = 'TRACK_' + String(i + 1).padStart(2, '0');
+
+      const h3 = document.createElement('h3');
+      h3.textContent = t.title || '';
+
+      const p = document.createElement('p');
+      p.textContent = t.description || '';
+
+      const ul = document.createElement('ul');
+      (t.items || []).forEach(function(item){
+        const li = document.createElement('li');
+        li.textContent = item;
+        ul.appendChild(li);
+      });
+
+      el.append(num, h3, p, ul);
+      grid.appendChild(el);
+    });
+
+    // Keep the registration dropdown in step with the tracks on offer.
+    if(select){
+      const previous = select.value;
+      select.innerHTML = '';
+      tracks.forEach(function(t){
+        const opt = document.createElement('option');
+        opt.textContent = t.title || '';
+        select.appendChild(opt);
+      });
+      if(previous) select.value = previous;
+      if(!select.value && select.options.length) select.selectedIndex = 0;
+    }
+  }
 
   function showMsg(text, type){
     const m = document.getElementById('formMsg');

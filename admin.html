@@ -104,6 +104,41 @@
   .plan-editor{background:#0D131F;border:1px solid var(--line);border-radius:12px;padding:16px}
   .plan-editor h3{font-size:16px;margin-bottom:14px}
 
+  /* Coming-soon chip toggle inside a plan editor (mobile-app style pill) */
+  .chip{
+    display:inline-flex;align-items:center;gap:9px;margin:0;cursor:pointer;
+    background:#1A2437;border:1px solid var(--line);border-radius:100px;
+    padding:7px 14px 7px 8px;font-size:13px;font-weight:500;color:var(--mute);
+    transition:background .2s,border-color .2s,color .2s;user-select:none;
+  }
+  .chip:hover{border-color:var(--mute)}
+  /* Keep the native checkbox focusable for keyboard/screen readers, unpainted. */
+  .chip input{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}
+  .chip .knob-track{
+    width:32px;height:18px;border-radius:100px;background:#2C3A55;flex:none;
+    position:relative;transition:background .2s;
+  }
+  .chip .knob-track::after{
+    content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;
+    background:var(--paper);transition:transform .2s;
+  }
+  .chip input:checked ~ .knob-track{background:var(--ink)}
+  .chip input:checked ~ .knob-track::after{transform:translateX(14px);background:var(--lime)}
+  .chip:has(input:checked){background:rgba(198,255,58,.14);border-color:var(--lime);color:var(--lime)}
+  .chip:has(input:focus-visible){outline:2px solid var(--lime);outline-offset:2px}
+
+  /* Fields switched off by an active chip. */
+  .field.disabled{opacity:.45}
+  .field.disabled input,.field.disabled textarea{cursor:not-allowed}
+
+  /* Tracks editor */
+  .track-editor{background:#0D131F;border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:14px;position:relative}
+  .track-editor .track-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+  .track-editor .track-num{font-family:'JetBrains Mono',monospace;color:var(--lime);font-size:13px}
+  .btn-remove{background:transparent;border:1px solid var(--line);color:var(--mute);border-radius:8px;padding:5px 11px;font-size:12.5px;cursor:pointer;font-family:'Inter',sans-serif}
+  .btn-remove:hover{border-color:var(--coral);color:var(--coral)}
+  .tracks-empty{color:var(--mute);font-size:14px;padding:10px 0 16px}
+
   /* Popup image uploader */
   input[type=file]{padding:9px 11px;font-size:14px;cursor:pointer}
   input[type=file]::file-selector-button{
@@ -118,6 +153,30 @@
   }
   .preview img{max-width:100%;max-height:340px;border-radius:8px;display:block}
   .preview-empty{color:var(--mute);font-size:13.5px}
+
+  /* ---- Skeleton loaders (shown while Firestore data is in flight) ---- */
+  @keyframes sk-shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+  .sk{
+    display:block;border-radius:7px;background:#182136;
+    background-image:linear-gradient(90deg,#182136 25%,#22304A 37%,#182136 63%);
+    background-size:200% 100%;animation:sk-shimmer 1.4s ease-in-out infinite;
+  }
+  .sk-text{height:12px}
+  .sk-title{height:17px;width:45%;margin-bottom:16px}
+  .sk-num{height:26px;width:70%;margin-bottom:7px}
+  .sk-label{height:10px;width:40%;margin-bottom:8px}
+  .sk-input{height:41px}
+  .sk-area{height:120px}
+  .sk-preview{width:100%;height:196px}
+  /* Inputs that already exist in the markup shimmer in place. */
+  .is-loading input,.is-loading textarea{
+    color:transparent;border-color:transparent;background:#182136;
+    background-image:linear-gradient(90deg,#182136 25%,#22304A 37%,#182136 63%);
+    background-size:200% 100%;animation:sk-shimmer 1.4s ease-in-out infinite;
+    pointer-events:none;
+  }
+  .is-loading label{opacity:.45}
+  @media(prefers-reduced-motion:reduce){.sk,.is-loading input,.is-loading textarea{animation:none}}
 
   .msg{font-size:14px;margin-top:12px;min-height:20px}
   .msg.ok{color:var(--lime)}
@@ -169,6 +228,7 @@
       <a data-target="students" class="active"><span class="ico">📊</span> Paid students</a>
       <a data-target="cohort"><span class="ico">🗓️</span> Cohort</a>
       <a data-target="pricing"><span class="ico">💳</span> Pricing</a>
+      <a data-target="tracks"><span class="ico">🧭</span> Tracks</a>
       <a data-target="popup"><span class="ico">🖼️</span> Popup image</a>
     </nav>
     <div class="side-foot">
@@ -199,7 +259,7 @@
         <div class="table-scroll">
           <table>
             <thead><tr><th>Name</th><th>Email</th><th>Amount</th><th>Cohort</th><th>Plan</th><th>Paid</th></tr></thead>
-            <tbody id="usersBody"><tr><td colspan="6" class="empty">Loading…</td></tr></tbody>
+            <tbody id="usersBody"><!-- skeleton rows injected on load --></tbody>
           </table>
         </div>
       </section>
@@ -208,7 +268,7 @@
       <section class="panel" id="cohort">
         <h2>Cohort</h2>
         <p class="hint">Shown on the homepage and attached to new registrations.</p>
-        <div class="grid2">
+        <div class="grid2" id="cohortFields">
           <div class="field"><label for="cohortNumber">Cohort number</label><input id="cohortNumber" type="number" min="1" step="1"></div>
           <div></div>
           <div class="field"><label for="cohortStart">Start date</label><input id="cohortStart" type="date"></div>
@@ -224,6 +284,21 @@
         <div class="save-row">
           <button class="btn btn-primary" id="saveBtn">Save settings</button>
           <span class="msg" id="settingsMsg"></span>
+        </div>
+      </section>
+
+      <!-- Tracks -->
+      <section class="panel" id="tracks">
+        <h2>Tracks</h2>
+        <p class="hint">
+          The three learning paths shown on the homepage. These also fill the
+          “Track” dropdown on the registration form.
+        </p>
+        <div id="trackEditors"><!-- filled by JS --></div>
+        <button class="btn btn-ghost" id="addTrackBtn">+ Add track</button>
+        <div class="save-row">
+          <button class="btn btn-primary" id="tracksSaveBtn">Save tracks</button>
+          <span class="msg" id="tracksMsg"></span>
         </div>
       </section>
 
@@ -325,6 +400,26 @@
     }
   ];
 
+  // Falls back to whatever the homepage ships with, so the editor is pre-filled
+  // the first time an admin opens it.
+  const TRACK_DEFS = [
+    {
+      title: "Web Foundations",
+      description: "From zero to your first live website. Perfect for absolute beginners.",
+      items: ["HTML, CSS & responsive design", "JavaScript fundamentals", "Git & deploying to the web", "Capstone: personal portfolio"]
+    },
+    {
+      title: "Full-Stack Dev",
+      description: "Build complete apps with a front end, back end, and database.",
+      items: ["React & modern UI", "Node, APIs & auth", "Databases & deployment", "Capstone: full web app"]
+    },
+    {
+      title: "Python & Data",
+      description: "Program with Python and turn raw data into real insight.",
+      items: ["Python core & automation", "Pandas & data analysis", "Intro to machine learning", "Capstone: data dashboard"]
+    }
+  ];
+
   const $ = (id) => document.getElementById(id);
   const naira = (n) => "₦" + Number(n || 0).toLocaleString();
 
@@ -418,13 +513,65 @@
       .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
     if(visible) setActive(visible.target.id);
   }, { rootMargin: "-80px 0px -55% 0px", threshold: [0, 0.25, 0.5] });
-  ["students", "cohort", "pricing", "popup"].forEach((id) => {
+  ["students", "cohort", "pricing", "tracks", "popup"].forEach((id) => {
     const el = document.getElementById(id);
     if(el) spy.observe(el);
   });
 
+  // ---- Skeleton loaders ----
+  // Every panel below is populated from Firestore, so each gets a placeholder
+  // in the shape of its real content rather than a spinner or "Loading…".
+  const skTimes = (n, html) => Array.from({ length: n }, () => html).join("");
+
+  function showStudentsSkeleton(){
+    $("statCount").innerHTML = "<span class='sk sk-num'></span>";
+    $("statRevenue").innerHTML = "<span class='sk sk-num'></span>";
+    $("usersBody").innerHTML = skTimes(5,
+      "<tr>" + skTimes(6, "<td><span class='sk sk-text'></span></td>") + "</tr>");
+  }
+
+  function showSettingsSkeleton(){
+    $("cohortFields").classList.add("is-loading");
+
+    $("planEditors").innerHTML = skTimes(PLAN_DEFS.length,
+      "<div class='plan-editor'>" +
+        "<span class='sk sk-title'></span>" +
+        "<div class='field'><span class='sk sk-label'></span><span class='sk sk-input'></span></div>" +
+        "<div class='field'><span class='sk sk-label'></span><span class='sk sk-area'></span></div>" +
+        "<span class='sk' style='height:32px;width:130px;border-radius:100px'></span>" +
+      "</div>");
+
+    $("trackEditors").innerHTML = skTimes(TRACK_DEFS.length,
+      "<div class='track-editor'>" +
+        "<span class='sk sk-title'></span>" +
+        "<div class='field'><span class='sk sk-label'></span><span class='sk sk-input'></span></div>" +
+        "<div class='field'><span class='sk sk-label'></span><span class='sk sk-input'></span></div>" +
+        "<div class='field'><span class='sk sk-label'></span><span class='sk sk-area'></span></div>" +
+      "</div>");
+
+    $("popupPreview").innerHTML = "<span class='sk sk-preview'></span>";
+    $("popupLink").closest(".field").parentElement.classList.add("is-loading");
+
+    // Saving now would write the empty/default editors over real data, so the
+    // buttons stay locked until the config is in.
+    setSettingsButtons(true);
+  }
+
+  function clearSettingsSkeleton(){
+    $("cohortFields").classList.remove("is-loading");
+    $("popupLink").closest(".field").parentElement.classList.remove("is-loading");
+    setSettingsButtons(false);
+  }
+
+  function setSettingsButtons(disabled){
+    ["saveBtn", "tracksSaveBtn", "addTrackBtn", "popupSaveBtn", "popupRemoveBtn"]
+      .forEach((id) => { $(id).disabled = disabled; });
+  }
+
   // ---- Dashboard load ----
   async function loadDashboard(){
+    showStudentsSkeleton();
+    showSettingsSkeleton();
     await Promise.all([loadUsers(), loadSettings()]);
   }
 
@@ -473,7 +620,12 @@
       console.warn("Could not load config:", err);
     }
 
+    // Data is in (or failed and we're falling back to defaults) — either way the
+    // editors are about to be real, so drop the placeholders first.
+    clearSettingsSkeleton();
+
     applyPopupConfig((cfg && cfg.popup) || null);
+    renderTrackEditors((cfg && Array.isArray(cfg.tracks) && cfg.tracks.length) ? cfg.tracks : TRACK_DEFS);
 
     const cohort = (cfg && cfg.cohort) || { number: 7, startDate: "", endDate: "" };
     $("cohortNumber").value = cohort.number != null ? cohort.number : "";
@@ -492,15 +644,40 @@
       const benefits = Array.isArray(s.benefits) ? s.benefits : def.benefits;
       const el = document.createElement("div");
       el.className = "plan-editor";
+      const comingSoon = s.comingSoon === true;
       el.innerHTML =
         "<h3>" + def.name + "</h3>" +
         "<div class='field'><label>Price (₦)</label>" +
           "<input type='number' min='0' step='500' data-plan-amount='" + def.id + "' value='" + amount + "'></div>" +
         "<div class='field'><label>Benefits — one per line</label>" +
-          "<textarea data-plan-benefits='" + def.id + "'>" + esc(benefits.join("\n")) + "</textarea></div>";
+          "<textarea data-plan-benefits='" + def.id + "'>" + esc(benefits.join("\n")) + "</textarea></div>" +
+        "<label class='chip'>" +
+          "<input type='checkbox' data-plan-soon='" + def.id + "'" + (comingSoon ? " checked" : "") + ">" +
+          "<span class='knob-track'></span>" +
+          "<span>Coming soon</span>" +
+        "</label>";
       container.appendChild(el);
+      applyPlanLock(def.id, comingSoon);
     });
   }
+
+  // A plan marked "coming soon" isn't on sale, so its price and benefits are
+  // locked — there's nothing to tune until it reopens.
+  function applyPlanLock(planId, locked){
+    ["[data-plan-amount='" + planId + "']", "[data-plan-benefits='" + planId + "']"]
+      .forEach((sel) => {
+        const input = document.querySelector(sel);
+        if(!input) return;
+        input.disabled = locked;
+        input.closest(".field").classList.toggle("disabled", locked);
+      });
+  }
+
+  // Chips are rebuilt on every settings load, so delegate from the container.
+  $("planEditors").addEventListener("change", (e) => {
+    const chip = e.target.closest("[data-plan-soon]");
+    if(chip) applyPlanLock(chip.dataset.planSoon, chip.checked);
+  });
 
   $("saveBtn").addEventListener("click", async () => {
     const msg = $("settingsMsg");
@@ -518,9 +695,16 @@
     const plans = PLAN_DEFS.map((def) => {
       const amountEl = document.querySelector("[data-plan-amount='" + def.id + "']");
       const benefitsEl = document.querySelector("[data-plan-benefits='" + def.id + "']");
+      const soonEl = document.querySelector("[data-plan-soon='" + def.id + "']");
       const amount = parseInt(amountEl.value, 10);
       const benefits = benefitsEl.value.split("\n").map((l) => l.trim()).filter(Boolean);
-      return { id: def.id, name: def.name, amount: isNaN(amount) ? 0 : amount, benefits };
+      return {
+        id: def.id,
+        name: def.name,
+        amount: isNaN(amount) ? 0 : amount,
+        benefits,
+        comingSoon: !!(soonEl && soonEl.checked)
+      };
     });
 
     const cfg = {
@@ -539,6 +723,93 @@
       await setDoc(doc(db, "config", "site"), cfg, { merge: true });
       msg.className = "msg ok";
       msg.textContent = "Saved. The homepage will show the new values.";
+    } catch (err) {
+      msg.className = "msg err";
+      msg.textContent = err.code === "permission-denied"
+        ? "Not authorized. Add this account's UID to firestore.rules."
+        : ("Save failed: " + (err.message || err.code));
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  // ---- Tracks ----
+  // Editors are rebuilt from scratch on every add/remove so the TRACK_01…
+  // numbering always matches the order shown on the homepage.
+  function renderTrackEditors(tracks){
+    const box = $("trackEditors");
+    box.innerHTML = "";
+
+    if(!tracks.length){
+      box.innerHTML = "<p class='tracks-empty'>No tracks — the homepage will keep showing its built-in ones. Add at least one to override them.</p>";
+      return;
+    }
+
+    tracks.forEach((t, i) => {
+      const el = document.createElement("div");
+      el.className = "track-editor";
+      el.innerHTML =
+        "<div class='track-head'>" +
+          "<span class='track-num'>TRACK_" + String(i + 1).padStart(2, "0") + "</span>" +
+          "<button class='btn-remove' data-remove-track='" + i + "'>Remove</button>" +
+        "</div>" +
+        "<div class='field'><label>Title</label>" +
+          "<input type='text' data-track-title value='" + esc(t.title || "") + "'></div>" +
+        "<div class='field'><label>Short description</label>" +
+          "<input type='text' data-track-desc value='" + esc(t.description || "") + "'></div>" +
+        "<div class='field'><label>What's covered — one per line</label>" +
+          "<textarea data-track-items>" + esc((t.items || []).join("\n")) + "</textarea></div>";
+      box.appendChild(el);
+    });
+  }
+
+  // Read the editors back into plain objects.
+  function collectTracks(){
+    return Array.from(document.querySelectorAll(".track-editor")).map((el) => ({
+      title: el.querySelector("[data-track-title]").value.trim(),
+      description: el.querySelector("[data-track-desc]").value.trim(),
+      items: el.querySelector("[data-track-items]").value
+        .split("\n").map((l) => l.trim()).filter(Boolean)
+    }));
+  }
+
+  $("trackEditors").addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-remove-track]");
+    if(!btn) return;
+    const idx = parseInt(btn.dataset.removeTrack, 10);
+    const tracks = collectTracks();
+    tracks.splice(idx, 1);
+    renderTrackEditors(tracks);
+  });
+
+  $("addTrackBtn").addEventListener("click", () => {
+    renderTrackEditors(collectTracks().concat([{ title: "", description: "", items: [] }]));
+  });
+
+  $("tracksSaveBtn").addEventListener("click", async () => {
+    const msg = $("tracksMsg");
+    const btn = $("tracksSaveBtn");
+    msg.className = "msg";
+    msg.textContent = "";
+
+    const tracks = collectTracks();
+    if(!tracks.length){
+      msg.className = "msg err";
+      msg.textContent = "Add at least one track.";
+      return;
+    }
+    if(tracks.some((t) => !t.title)){
+      msg.className = "msg err";
+      msg.textContent = "Every track needs a title.";
+      return;
+    }
+
+    btn.disabled = true;
+    try {
+      await setDoc(doc(db, "config", "site"), { tracks }, { merge: true });
+      renderTrackEditors(tracks);
+      msg.className = "msg ok";
+      msg.textContent = "Saved. The homepage tracks and the Track dropdown are updated.";
     } catch (err) {
       msg.className = "msg err";
       msg.textContent = err.code === "permission-denied"
@@ -753,7 +1024,7 @@
   function esc(v){
     return String(v == null ? "" : v)
       .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;");
+      .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
   }
 </script>
 </body>
