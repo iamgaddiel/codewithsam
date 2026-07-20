@@ -25,6 +25,12 @@
   to = "/.netlify/functions/verify-payment"
   status = 200
 
+# Signed ImageKit upload credentials for the admin popup-image uploader.
+[[redirects]]
+  from = "/api/imagekit-auth"
+  to = "/.netlify/functions/imagekit-auth"
+  status = 200
+
 # Clean URL for the admin panel.
 [[redirects]]
   from = "/admin"

@@ -141,10 +141,19 @@ only the secret key (set in Netlify, step 3). All you configure here is:
    |----------|-------|
    | `PAYSTACK_SECRET_KEY` | Your Paystack **secret** key (`sk_...`). |
    | `FIREBASE_SERVICE_ACCOUNT` | The Firebase service-account JSON as a single-line string. |
+   | `IMAGEKIT_PUBLIC_KEY` | ImageKit **public** key (`public_...`). |
+   | `IMAGEKIT_PRIVATE_KEY` | ImageKit **private** key (`private_...`). |
+   | `IMAGEKIT_URL_ENDPOINT` | e.g. `https://ik.imagekit.io/your_id`. |
+   | `ADMIN_UIDS` | Comma-separated Firebase UIDs allowed to upload the popup image. |
 
    Get the service account from Firebase console → Project settings →
    **Service accounts** → *Generate new private key*, then paste the whole JSON
    (stringified to one line) as the value.
+
+   The ImageKit keys come from ImageKit dashboard → **Developer options → API
+   keys**. `ADMIN_UIDS` is the same UID you pasted into `firestore.rules` — the
+   upload endpoint refuses to issue credentials if it's missing, so uploads stay
+   closed until you set it.
 3. Deploy.
 
 ### 4. Seed the settings

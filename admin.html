@@ -104,6 +104,21 @@
   .plan-editor{background:#0D131F;border:1px solid var(--line);border-radius:12px;padding:16px}
   .plan-editor h3{font-size:16px;margin-bottom:14px}
 
+  /* Popup image uploader */
+  input[type=file]{padding:9px 11px;font-size:14px;cursor:pointer}
+  input[type=file]::file-selector-button{
+    background:#1A2437;color:var(--paper);border:1px solid var(--line);border-radius:8px;
+    padding:6px 12px;margin-right:12px;font-family:'Inter',sans-serif;font-size:13px;cursor:pointer;
+  }
+  input[type=file]::file-selector-button:hover{border-color:var(--mute)}
+  .filehint{color:var(--mute);font-size:12.5px;margin-top:7px;line-height:1.45}
+  .preview{
+    background:#0D131F;border:1px dashed var(--line);border-radius:12px;padding:12px;
+    min-height:220px;display:flex;align-items:center;justify-content:center;text-align:center;
+  }
+  .preview img{max-width:100%;max-height:340px;border-radius:8px;display:block}
+  .preview-empty{color:var(--mute);font-size:13.5px}
+
   .msg{font-size:14px;margin-top:12px;min-height:20px}
   .msg.ok{color:var(--lime)}
   .msg.err{color:var(--coral)}
@@ -154,6 +169,7 @@
       <a data-target="students" class="active"><span class="ico">📊</span> Paid students</a>
       <a data-target="cohort"><span class="ico">🗓️</span> Cohort</a>
       <a data-target="pricing"><span class="ico">💳</span> Pricing</a>
+      <a data-target="popup"><span class="ico">🖼️</span> Popup image</a>
     </nav>
     <div class="side-foot">
       <div class="who-email" id="userEmail"></div>
@@ -208,6 +224,47 @@
         <div class="save-row">
           <button class="btn btn-primary" id="saveBtn">Save settings</button>
           <span class="msg" id="settingsMsg"></span>
+        </div>
+      </section>
+
+      <!-- Popup image -->
+      <section class="panel" id="popup">
+        <h2>Popup image</h2>
+        <p class="hint">
+          The flyer shown to visitors a few seconds after the homepage loads. Upload one
+          and it replaces the default text popup. Remove it and the text popup comes back.
+        </p>
+
+        <div class="grid2">
+          <div>
+            <div class="field">
+              <label for="popupFile">Flyer image</label>
+              <input id="popupFile" type="file" accept="image/jpeg,image/png,image/webp">
+              <p class="filehint">
+                JPG, PNG or WebP · max 2 MB · max 2000 × 2000 px.
+                Portrait flyers (roughly 4:5) look best.
+              </p>
+            </div>
+            <div class="field">
+              <label for="popupLink">Link when clicked (optional)</label>
+              <input id="popupLink" type="url" placeholder="https://… — leave blank to scroll to pricing">
+            </div>
+            <div class="field">
+              <label for="popupAlt">Alt text (for screen readers)</label>
+              <input id="popupAlt" type="text" placeholder="e.g. Cohort 8 enrolling now">
+            </div>
+          </div>
+
+          <div>
+            <label>Current popup</label>
+            <div class="preview" id="popupPreview"><span class="preview-empty">No image yet — the text popup is showing.</span></div>
+          </div>
+        </div>
+
+        <div class="save-row">
+          <button class="btn btn-primary" id="popupSaveBtn">Save popup</button>
+          <button class="btn btn-ghost" id="popupRemoveBtn">Remove image</button>
+          <span class="msg" id="popupMsg"></span>
         </div>
       </section>
     </div>
@@ -361,7 +418,7 @@
       .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
     if(visible) setActive(visible.target.id);
   }, { rootMargin: "-80px 0px -55% 0px", threshold: [0, 0.25, 0.5] });
-  ["students", "cohort", "pricing"].forEach((id) => {
+  ["students", "cohort", "pricing", "popup"].forEach((id) => {
     const el = document.getElementById(id);
     if(el) spy.observe(el);
   });
@@ -415,6 +472,8 @@
       // Non-fatal — fall back to defaults so the form is still usable.
       console.warn("Could not load config:", err);
     }
+
+    applyPopupConfig((cfg && cfg.popup) || null);
 
     const cohort = (cfg && cfg.cohort) || { number: 7, startDate: "", endDate: "" };
     $("cohortNumber").value = cohort.number != null ? cohort.number : "";
@@ -476,7 +535,8 @@
 
     btn.disabled = true;
     try {
-      await setDoc(doc(db, "config", "site"), cfg);
+      // merge:true so this save doesn't wipe the popup image saved separately.
+      await setDoc(doc(db, "config", "site"), cfg, { merge: true });
       msg.className = "msg ok";
       msg.textContent = "Saved. The homepage will show the new values.";
     } catch (err) {
@@ -484,6 +544,207 @@
       msg.textContent = err.code === "permission-denied"
         ? "Not authorized. Add this account's UID to firestore.rules."
         : ("Save failed: " + (err.message || err.code));
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  // ---- Popup image ----
+  // The file goes straight from this page to ImageKit; only the resulting URL
+  // is stored in Firestore. /api/imagekit-auth signs the upload for us so the
+  // ImageKit private key never reaches the browser.
+  const MAX_BYTES = 2 * 1024 * 1024;   // 2 MB
+  const MAX_DIMENSION = 2000;          // px, either side
+  const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
+
+  // The popup currently saved in Firestore, so "Save popup" can update the
+  // link/alt text without forcing a re-upload.
+  let currentPopup = null;
+
+  function applyPopupConfig(popup){
+    currentPopup = popup && popup.imageUrl ? popup : null;
+    $("popupLink").value = (currentPopup && currentPopup.link) || "";
+    $("popupAlt").value = (currentPopup && currentPopup.alt) || "";
+    renderPopupPreview(currentPopup ? currentPopup.imageUrl : null);
+  }
+
+  function renderPopupPreview(url){
+    const box = $("popupPreview");
+    box.innerHTML = url
+      ? "<img src='" + esc(url) + "' alt='Popup preview'>"
+      : "<span class='preview-empty'>No image yet — the text popup is showing.</span>";
+  }
+
+  // Reads the file's real pixel dimensions before we commit to uploading it.
+  function readDimensions(file){
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        resolve({ width: img.naturalWidth, height: img.naturalHeight });
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error("That file isn't a readable image."));
+      };
+      img.src = url;
+    });
+  }
+
+  async function validateImage(file){
+    if(!ALLOWED_TYPES.includes(file.type)){
+      throw new Error("Use a JPG, PNG or WebP image.");
+    }
+    if(file.size > MAX_BYTES){
+      const mb = (file.size / 1024 / 1024).toFixed(1);
+      throw new Error("That image is " + mb + " MB — the limit is 2 MB. Compress it and try again.");
+    }
+    const { width, height } = await readDimensions(file);
+    if(width > MAX_DIMENSION || height > MAX_DIMENSION){
+      throw new Error("That image is " + width + "×" + height + "px — the limit is 2000×2000px.");
+    }
+    return { width, height };
+  }
+
+  async function uploadToImageKit(file){
+    const user = auth.currentUser;
+    if(!user) throw new Error("Your session expired. Sign in again.");
+
+    const authRes = await fetch("/api/imagekit-auth", {
+      method: "POST",
+      headers: { Authorization: "Bearer " + (await user.getIdToken()) }
+    });
+    const creds = await authRes.json().catch(() => ({}));
+    if(!authRes.ok) throw new Error(creds.message || "Could not authorize the upload.");
+
+    const form = new FormData();
+    form.append("file", file);
+    form.append("fileName", "popup-" + Date.now());
+    form.append("folder", "/popups");
+    form.append("useUniqueFileName", "true");
+    form.append("publicKey", creds.publicKey);
+    form.append("token", creds.token);
+    form.append("expire", creds.expire);
+    form.append("signature", creds.signature);
+
+    const upRes = await fetch("https://upload.imagekit.io/api/v1/files/upload", {
+      method: "POST", body: form
+    });
+    const result = await upRes.json().catch(() => ({}));
+    if(!upRes.ok || !result.url){
+      throw new Error((result.message) || "ImageKit rejected the upload.");
+    }
+    return { url: result.url, fileId: result.fileId || "" };
+  }
+
+  // Live preview + early validation as soon as a file is picked.
+  $("popupFile").addEventListener("change", async () => {
+    const msg = $("popupMsg");
+    msg.className = "msg";
+    msg.textContent = "";
+    const file = $("popupFile").files[0];
+    if(!file){
+      renderPopupPreview(currentPopup ? currentPopup.imageUrl : null);
+      return;
+    }
+    try {
+      await validateImage(file);
+      renderPopupPreview(URL.createObjectURL(file), true);
+      msg.className = "msg ok";
+      msg.textContent = "Looks good — press “Save popup” to publish it.";
+    } catch (err) {
+      $("popupFile").value = "";
+      renderPopupPreview(currentPopup ? currentPopup.imageUrl : null);
+      msg.className = "msg err";
+      msg.textContent = err.message;
+    }
+  });
+
+  $("popupSaveBtn").addEventListener("click", async () => {
+    const msg = $("popupMsg");
+    const btn = $("popupSaveBtn");
+    msg.className = "msg";
+    msg.textContent = "";
+
+    const file = $("popupFile").files[0];
+    const link = $("popupLink").value.trim();
+    const alt = $("popupAlt").value.trim();
+
+    if(!file && !currentPopup){
+      msg.className = "msg err";
+      msg.textContent = "Choose an image first.";
+      return;
+    }
+    if(link && !/^https?:\/\//i.test(link)){
+      msg.className = "msg err";
+      msg.textContent = "The link must start with http:// or https://";
+      return;
+    }
+
+    btn.disabled = true;
+    try {
+      let popup;
+      if(file){
+        await validateImage(file);
+        msg.textContent = "Uploading…";
+        const uploaded = await uploadToImageKit(file);
+        popup = { imageUrl: uploaded.url, fileId: uploaded.fileId };
+      } else {
+        // No new file — just re-saving the link/alt text for the current image.
+        popup = { imageUrl: currentPopup.imageUrl, fileId: currentPopup.fileId || "" };
+      }
+      popup.link = link;
+      popup.alt = alt;
+      popup.updatedAt = new Date().toISOString();
+
+      await setDoc(doc(db, "config", "site"), { popup }, { merge: true });
+
+      currentPopup = popup;
+      $("popupFile").value = "";
+      renderPopupPreview(popup.imageUrl);
+      msg.className = "msg ok";
+      msg.textContent = "Saved. Visitors will now see this flyer.";
+    } catch (err) {
+      msg.className = "msg err";
+      msg.textContent = err.code === "permission-denied"
+        ? "Not authorized. Add this account's UID to firestore.rules."
+        : (err.message || "Upload failed.");
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  $("popupRemoveBtn").addEventListener("click", async () => {
+    const msg = $("popupMsg");
+    const btn = $("popupRemoveBtn");
+    msg.className = "msg";
+    msg.textContent = "";
+
+    if(!currentPopup && !$("popupFile").files[0]){
+      msg.className = "msg err";
+      msg.textContent = "There's no popup image to remove.";
+      return;
+    }
+    if(!confirm("Remove the popup image? Visitors will see the default text popup instead.")) return;
+
+    btn.disabled = true;
+    try {
+      // The file stays in ImageKit (harmless, and keeps old links working);
+      // clearing the config is what takes it off the site.
+      await setDoc(doc(db, "config", "site"), { popup: null }, { merge: true });
+      currentPopup = null;
+      $("popupFile").value = "";
+      $("popupLink").value = "";
+      $("popupAlt").value = "";
+      renderPopupPreview(null);
+      msg.className = "msg ok";
+      msg.textContent = "Removed. The default text popup is showing again.";
+    } catch (err) {
+      msg.className = "msg err";
+      msg.textContent = err.code === "permission-denied"
+        ? "Not authorized. Add this account's UID to firestore.rules."
+        : ("Couldn't remove it: " + (err.message || err.code));
     } finally {
       btn.disabled = false;
     }

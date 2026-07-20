@@ -344,6 +344,20 @@
   .ad-later{position:relative;display:block;width:100%;background:none;border:none;color:var(--mute);font-size:13.5px;margin-top:12px;cursor:pointer}
   .ad-later:hover{color:var(--paper)}
 
+  /* Flyer ad modal — image variant (admin-uploaded, replaces the text card) */
+  .ad-image-card{max-width:420px;padding:0;background:transparent;border:none;border-radius:16px;line-height:0}
+  .ad-image-card img{width:100%;height:auto;max-height:82vh;object-fit:contain;border-radius:16px;display:block}
+  .ad-image-card .ad-media{display:block;width:100%;background:none;border:none;padding:0;cursor:pointer}
+  .ad-image-card .ad-close{
+    top:-14px;right:-14px;width:34px;height:34px;border-radius:50%;
+    background:var(--panel);border:1px solid var(--line);color:var(--paper);
+    display:flex;align-items:center;justify-content:center;font-size:22px;
+  }
+  .ad-image-card .ad-close:hover{background:var(--ink)}
+  @media(max-width:520px){
+    .ad-image-card .ad-close{top:-10px;right:-6px}
+  }
+
   @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -359,7 +373,14 @@
 
 <!-- FLYER AD MODAL -->
 <div class="ad-overlay" id="adModal">
-  <div class="ad-card" role="dialog" aria-modal="true" aria-labelledby="adTitle">
+  <!-- Image flyer: used when the admin has uploaded one (see /admin → Popup image). -->
+  <div class="ad-card ad-image-card" id="adImageCard" role="dialog" aria-modal="true" aria-label="Announcement" style="display:none">
+    <button class="ad-close" id="adImageClose" aria-label="Close">&times;</button>
+    <button class="ad-media" id="adImageBtn"><img id="adImage" src="" alt=""></button>
+  </div>
+
+  <!-- Default text flyer: shown when no image has been uploaded. -->
+  <div class="ad-card" id="adTextCard" role="dialog" aria-modal="true" aria-labelledby="adTitle">
     <div class="ad-glow"></div>
     <button class="ad-close" id="adClose" aria-label="Close">&times;</button>
     <div class="ad-badge"><span class="pulse"></span>Enrolling now</div>
@@ -694,6 +715,12 @@
   window.applySiteConfig = function(cfg){
     if(!cfg) return;
 
+    // Admin-uploaded flyer (ImageKit). The ad modal reads this when it opens;
+    // with no image it falls back to the built-in text card.
+    if(cfg.popup && cfg.popup.imageUrl){
+      window.cwsPopup = cfg.popup;
+    }
+
     // Cohort number + dates.
     const cohort = cfg.cohort || {};
     if(cohort.number != null){
@@ -842,9 +869,23 @@
     if(!modal) return;
     let shown = false;
 
+    // Swap in the admin-uploaded flyer if one was loaded from site config.
+    // Deferred until open time so a slow config fetch can still win the race.
+    function useImageCard(){
+      const popup = window.cwsPopup;
+      if(!popup || !popup.imageUrl) return false;
+      const img = document.getElementById('adImage');
+      img.src = popup.imageUrl;
+      img.alt = popup.alt || 'Announcement';
+      document.getElementById('adTextCard').style.display = 'none';
+      document.getElementById('adImageCard').style.display = 'block';
+      return true;
+    }
+
     function openAd(){
       if(shown || sessionStorage.getItem('cws_ad_seen')) return;
       shown = true;
+      useImageCard();
       modal.classList.add('show');
     }
     function closeAd(){
@@ -857,6 +898,17 @@
     document.getElementById('adCta').addEventListener('click', function(){
       closeAd();
       document.getElementById('pricing').scrollIntoView({ behavior:'smooth' });
+    });
+
+    document.getElementById('adImageClose').addEventListener('click', closeAd);
+    document.getElementById('adImageBtn').addEventListener('click', function(){
+      const link = window.cwsPopup && window.cwsPopup.link;
+      closeAd();
+      if(link){
+        window.open(link, '_blank', 'noopener');
+      } else {
+        document.getElementById('pricing').scrollIntoView({ behavior:'smooth' });
+      }
     });
     modal.addEventListener('click', function(e){ if(e.target === modal) closeAd(); });
     document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeAd(); });
